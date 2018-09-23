@@ -1,7 +1,7 @@
 (* This file contains basic definitions and Lemmas about multi-valued functions *)
 From mathcomp Require Import all_ssreflect.
-Require Import ClassicalChoice CRelationClasses Morphisms.
- 
+Import Morphisms.
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -35,8 +35,6 @@ Global Instance from_prpr:
 Proof. by move => P Q eq s _ <-; apply eq. Qed.
 
 Definition subs (P Q : set) := forall s, P s -> Q s.
-Lemma subs_crct (P Q: set): subs P Q <-> subset P Q.
-Proof. done. Qed.
 Notation "P '\is_subset_of' Q" := (subs P Q) (at level 50).
 
 Global Instance subs_prpr:
