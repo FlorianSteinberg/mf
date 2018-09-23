@@ -6,3 +6,4 @@ mf_prop.v
 mf_prod.v
 mf_tight.v
 all_mf.v
+classical_mf.v

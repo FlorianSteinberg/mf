@@ -44,6 +44,9 @@ Notation inv f := (mf_inv f).
 Notation "f '\inverse'" := (mf_inv f) (at level 50).
 Notation "f '\^-1'" := (mf_inv f) (format "f '\^-1'", at level 50).
 
+Lemma inv_inv S T (f: S ->> T): (f\^-1)\^-1 =~= f.
+Proof. done. Qed.
+
 Global Instance inv_prpr S T: Proper ((@equiv S T) ==> (@equiv T S)) (@mf_inv T S).
 Proof. by move => f g eq s t; apply (eq t s). Qed.
 
@@ -62,9 +65,7 @@ Lemma dom_crct S T (f: S ->> T): dom f === (inv_img f All).
 Proof. by split => [[t] | [t []]]; exists t. Qed.
 
 Global Instance dom_prpr S T: Proper ((@equiv S T) ==> (@set_equiv S)) (@dom S T).
-Proof.
-by move => f g eq s; split; move => [t]; exists t; apply (eq s t).
-Qed.
+Proof. by move => f g eq s; split; move => [t]; exists t; apply (eq s t). Qed.
 
 Lemma dom_invimg S T (f: S ->> T): (dom f) === (inv_img f All).
 Proof. by split => [[t fst] | [t [_ fst]]]; exists t. Qed.
@@ -79,6 +80,10 @@ Proof. by split => [[s []] | [s]]; exists s. Qed.
 
 Lemma codom_dom_inv S T (f: S ->> T): codom f === dom (f\^-1).
 Proof. by rewrite dom_crct. Qed.
+
+Lemma inv_dom_codom S T (f: S ->> T) t:
+	t \from_codom f <-> t \from_dom (f \inverse).
+Proof. exact/ codom_dom_inv. Qed.
 
 Global Instance codom_prpr S T: Proper ((@equiv S T) ==> (@set_equiv T)) (@codom S T).
 Proof. by move => f g eq; rewrite !codom_dom_inv eq. Qed.
@@ -110,15 +115,12 @@ Global Instance corestr_prpr S T:
 	Proper (@equiv S T ==> @set_equiv T ==> @equiv S T) (@corestr S T).
 Proof.
 move => f g feqg P Q PeqQ s t.
-split => [[Ps fst] | [Qs gst]]; split => //.
-			by apply PeqQ.
-		by apply feqg.
-	by apply PeqQ.
-by apply feqg.
+by split => [[Ps fst] | [Qs gst]]; split => //; try apply PeqQ; try apply feqg.
 Qed.
 
 Definition restr S T (f: S ->> T) P := ((f\^-1)\corestricted_to P)\^-1.
 Notation "f '\restricted_to' P" := (restr f P) (at level 2).
+Notation "f '|_' P" := (restr f P) (format "f '|_' P", at level 2).
 
 Lemma restr_crct S T (f: S ->> T) P s t: (f \restricted_to P) s t <-> P s /\ f s t.
 Proof. done. Qed.
@@ -129,15 +131,11 @@ Proof. by move => s t; split => // [[]]. Qed.
 Global Instance restr_prpr S T: Proper (@equiv S T ==> @set_equiv S ==> @equiv S T) (@restr S T).
 Proof.
 move => f g feqg P Q PeqQ s t.
-split => [[Ps fst] | [Qs gst]]; split => //.
-			by apply PeqQ.
-		by apply feqg.
-	by apply PeqQ.
-by apply feqg.
+by split => [[Ps fst] | [Qs gst]]; split => //; try apply PeqQ; try apply feqg.
 Qed.
 
-Lemma inv_inv S T (f: S ->> T): (f\^-1)\^-1 =~= f.
-Proof. done. Qed.
+Lemma restr_all S T (f: S ->> T): f|_All =~= f.
+Proof. move => s t; by split => // [[]]. Qed.
 End Basics.
 Notation "f =~= g" := (equiv f g) (at level 70).
 Notation "t '\from_codom' f" := (codom f t) (at level 2).
@@ -150,5 +148,3 @@ Notation "f '|^' P" := (corestr f P) (format "f '|^' P", at level 2).
 Notation "f '\restricted_to' P" := (restr f P) (at level 2).
 Notation "f '|_' P" := (restr f P) (format "f '|_' P", at level 2).
 Arguments mf_id {S}.
-Lemma restr_all S T (f: S ->> T): f|_All =~= f.
-Proof. move => s t; by split => // [[]]. Qed.

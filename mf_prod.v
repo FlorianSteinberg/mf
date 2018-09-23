@@ -1,7 +1,7 @@
 (* This file contains basic definitions and Lemmas about multi-valued functions *)
 From mathcomp Require Import all_ssreflect.
 Require Import mf_set mf_core mf_comp mf_prop mf_tight.
-Require Import CRelationClasses Morphisms Classical.
+Import Morphisms.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

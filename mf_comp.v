@@ -49,6 +49,30 @@ split; last by move => r g'sr; rewrite eqf; apply/b/eqg.
 by move: a => [r stf]; exists r; rewrite (eqf r t) (eqg s r).
 Qed.
 
+Lemma comp_F2MF R S T (f: S ->> T) (g: R -> S):
+	(f o (F2MF g)) =~= mf.Pack (fun r => f (g r)).
+Proof.
+split => [[[r [/=-> fst]] prop] | fgrt] //.
+by split => [ | r eq]; [exists (g s) | exists s0; rewrite -eq].
+Qed.
+
+Lemma F2MF_comp R S T (f: S ->> T) (g: R -> S):
+	(f o (F2MF g)) =~= mf.Pack (fun r => f (g r)).
+Proof. exact/comp_F2MF. Qed.
+
+Lemma F2MF_comp_F2MF R S T (f: S -> T) (g: R -> S):
+	(F2MF f o F2MF g) =~= F2MF (fun r => f (g r)).
+Proof. by move => s t; rewrite F2MF_comp /=. Qed.
+
+Notation "f '\is_section_of' g" := (f o g =~= F2MF id) (at level 2).
+
+Lemma sec_cncl S T (f: S -> T) g:
+	(F2MF f) \is_section_of (F2MF g) <-> cancel g f.
+Proof.
+split; last by intros; rewrite F2MF_comp /F2MF => s t; split => <-.
+by move => eq s; move: (eq s s); rewrite (F2MF_comp _ g _ s) /F2MF /= => ->.
+Qed.
+
 Lemma comp_dom R Q Q' (f: Q ->> Q') (g: R ->> Q):
 	dom (f o g) \is_subset_of dom g.
 Proof. by move => r [s [[t[]]]]; exists t. Qed.
@@ -137,21 +161,6 @@ Proof. by split => //=; move => [[a []]]. Qed.
 
 Lemma comp_empty_r S T R (f: S ->> T): f o (@empty_mf R S) =~= (@empty_mf R T).
 Proof. by split => //=; move => [[a []]]. Qed.
-
-Lemma comp_F2MF R S T (f: S ->> T) (g: R -> S):
-	(f o (F2MF g)) =~= mf.Pack (fun r => f (g r)).
-Proof.
-split => [[[r [/=-> fst]] prop] | fgrt] //.
-by split => [ | r eq]; [exists (g s) | exists s0; rewrite -eq].
-Qed.
-
-Lemma F2MF_comp R S T (f: S ->> T) (g: R -> S):
-	(f o (F2MF g)) =~= mf.Pack (fun r => f (g r)).
-Proof. exact/comp_F2MF. Qed.
-
-Lemma F2MF_comp_F2MF R S T (f: S -> T) (g: R -> S):
-	(F2MF f o F2MF g) =~= F2MF (fun r => f (g r)).
-Proof. by move => s t; rewrite F2MF_comp /=. Qed.
 
 Definition cnst S T (c: T) := (fun (_: S) => c).
 Arguments cnst {S} {T}.
