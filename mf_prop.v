@@ -29,6 +29,15 @@ Lemma comp_tot R (f: S ->> T) (g: T ->> R):
 	f \is_total -> g \is_total -> (g o f) \is_total.
 Proof. by move => tot tot'; rewrite -comp_tot_dom. Qed.
 
+Lemma tot_subs_dom R (f: S ->> T) (g: S ->> T) (h: T ->> R):
+	codom g \is_subset_of dom h-> dom (h o g) \is_subset_of dom (h o f) -> dom g \is_subset_of dom f.
+Proof.
+move => tot dm s [t gst].
+have [ | r [[t' []]]]:= dm s; last by exists t'.
+have [ | r htr] //:= tot t; first by exists s.
+by exists r; split => [ | t' gst']; [exists t | apply tot; exists s].
+Qed.
+
 Lemma F2MF_tot (f: S -> T):
 	(F2MF f) \is_total.
 Proof. by rewrite tot_spec; move => s; exists (f s). Qed.

@@ -1,7 +1,7 @@
 (* This file contains basic definitions and Lemmas about multi-valued functions *)
 From mathcomp Require Import all_ssreflect.
 Require Import mf_set mf_core mf_comp mf_prop.
-Require Import CRelationClasses Morphisms ClassicalChoice.
+Import Morphisms.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -176,6 +176,13 @@ End tight.
 
 Section tight_comp.
 Context (S T: Type).
+
+Lemma tight_id_inv R R' (f: R ->> R'): mf_id \tightens (f\^-1 o f).
+Proof.
+split => [ | s [s' [[t [fst fs't]]] subs]]; first by rewrite F2MF_tot; apply: subs_all.
+by move => _ <-; split; first by exists t.
+Qed.
+
 Lemma tight_comp_l_codom R (f f': T ->> R) (g: S ->> T):
 	f \tightens (f' \restricted_to (codom g)) -> (f o g) \tightens (f' o g).
 Proof.
@@ -219,6 +226,30 @@ have subs':= val s sfd.
 have fgsr: f o g s r by rewrite sing_rcomp => //; exists t.
 have [[t' [gst' f't'r]]]:= subs' r fgsr.
 by rewrite (sing s t t').
+Qed.
+
+Lemma tight_comp R (f f': T ->> R) (g g': S ->> T):
+	f \tightens f' -> g \tightens g' -> (f o g) \tightens (f' o g').
+Proof.
+intros; apply/tight_trans/tight_comp_l; last by apply H.
+apply/tight_trans/tight_comp_r; last by apply H0.
+exact/tight_ref.
+Qed.
+
+Lemma tight_comp_codom R (f f': T ->> R) (g g': S ->> T):
+	f \tightens (f' \restricted_to (codom g')) -> g \tightens g' -> (f o g) \tightens (f' o g').
+Proof.
+move => tight tight'.
+apply/tight_trans; first by apply /tight_comp_l_codom/tight.
+by apply/tight_trans/tight_comp_r; [apply/tight_ref | apply tight'].
+Qed.
+
+Lemma tight_inv_comp R (f: S ->> R) (g: T ->> R) (h: S ->> T):
+	(f o (h\^-1)) \tightens g -> f \tightens (g o h).
+Proof.
+move => tight; rewrite -(comp_id_r f).
+apply /tight_trans; last apply /tight_comp_r/(tight_id_inv h).
+by rewrite -comp_assoc; apply tight_comp_l.
 Qed.
 
 Lemma tight_comp_inv R (f: S ->> T) (g: R ->> T) (h: S ->> R):
@@ -272,14 +303,31 @@ move => s' hs'r.
 have [ | [t'' [[s'']]fht''r prp'] _]:= tight r; first by exists t.
 by have := prp' s' hs'r.
 Qed.
+End tight_comp.
 
+Section choice_functions.
+Context (S T: Type).
 Definition icf S T (f: S ->> T) g := forall s t, f s t -> f s (g s).
 Notation "g '\is_choice_for' f" := (icf f g) (at level 2).
 (* A more comprehensible way to state icf would be "forall s, s \from_dom f -> f s (g s)"
 or "forall s, (exists t, f s t) -> f s (g s)" but avoiding the existential quatification
-makes the above more convenient to use. *)
+makes the above more convenient to use. Assuming the axiom of choice, a choice function
+exists for any multivalued function (see "choice_mf.v"). *)
 
-Lemma id_icf_mfinv (f: S ->> T): id \is_choice_for ((mf_inv f) o f).
+Lemma icf_F2MF_tight (g: S -> T) f:
+	g \is_choice_for f <-> (F2MF g) \tightens f.
+Proof.
+rewrite !tight_char.
+split => [ icf s [] t fst | tight s t fst].
+	by split => [ | gs eq ]; [exists (g s) | rewrite -eq; apply: (icf s t)].
+have ex: s \from_dom f by exists t.
+by apply ((tight s ex).2 (g s)).
+Qed.
+
+Global Instance icf_prpr: Proper (@equiv S T ==> eq ==> iff) (@icf S T).
+Proof. by move => f g feg f' g' f'eg'; rewrite !icf_F2MF_tight feg f'eg'. Qed.
+
+Lemma id_icf_inv (f: S ->> T): id \is_choice_for ((mf_inv f) o f).
 Proof. by move => s s' [[t [fst _]] _]; split; [exists t | exists s]. Qed.
 
 Lemma sing_tot_F2MF_icf (f: S ->> T) g:
@@ -302,16 +350,6 @@ have [r' fg'sr']:= (prop (g' s) gsg's).
 by split; last apply/ (icff (g' s) r').
 Qed.
 
-Lemma icf_F2MF_tight (g: S -> T) f:
-	g \is_choice_for f <-> (F2MF g) \tightens f.
-Proof.
-rewrite !tight_char.
-split => [ icf s [] t fst | tight s t fst].
-	by split => [ | gs eq ]; [exists (g s) | rewrite -eq; apply: (icf s t)].
-have ex: s \from_dom f by exists t.
-by apply ((tight s ex).2 (g s)).
-Qed.
-
 Lemma tight_icf (g f: S ->> T):
 	g \tightens f -> forall h, (h \is_choice_for g -> h \is_choice_for f).
 Proof.
@@ -320,100 +358,8 @@ apply/ icf_F2MF_tight.
 apply/ tight_trans; first by apply tight.
 by apply/ icf_F2MF_tight.
 Qed.
-
-Lemma exists_choice (f: S ->> T) (t: T):
-	exists F, F \is_choice_for f.
-Proof.
-set R := make_mf (fun s t => forall t', f s t' -> f s t).
-have [s | F tot]:= choice (mf.value R); last by exists F => s; apply /tot.
-case: (classic (s \from_dom f)) => [[] t' fst | false]; first by exists t'.
-by exists t => t' fst'; exfalso; apply false; exists t'.
-Qed.
-
-Lemma F2MF_sing_tot (f: S ->> T) (t: T):
-	f \is_singlevalued /\ f \is_total <-> exists g, (F2MF g) =~= f.
-Proof.
-split => [ [sing tot] | [g eq] ].
-	have [g icf]:= exists_choice f t.
-	exists g; by apply/ sing_tot_F2MF_icf.
-by split; rewrite -eq; [apply F2MF_sing | apply F2MF_tot].
-Qed.
-
-Lemma icf_tight (g f: S ->> T): (forall s, exists t', ~ f s t')
-	-> (forall h, (h \is_choice_for g -> h \is_choice_for f)) -> (g \tightens f).
-Proof.
-rewrite !tight_char.
-move => ex prop s [t fst].
-split => [ | t' gst'].
-	have [t' nfst']:= (ex s).
-	pose g' := make_mf (fun x y => (x <> s -> g x y) /\ (x = s -> y = t')).
-	have [h icf'] := (exists_choice g' t).
-	apply NNPP => nex.
-	have ngst': ~g s t' by move => gst'; apply nex; exists t'.
-	have icf: h \is_choice_for g.
-		move => s' t'' gs't''.
-		case (classic (s' = s)) => [eq | neq].
-			by exfalso; apply nex; exists t''; rewrite -eq.
-		have g's't'': g' s' t'' by split => // eq; exfalso; apply neq.
-		exact: ((icf' s' t'' g's't'').1 neq).
-	suffices eq: h s = t' by apply nfst'; rewrite -eq; apply: (prop h icf s t).
-	have g'st': g' s t' by trivial.
-	by apply (icf' s t' g'st').2.
-pose g' := make_mf (fun x y => g x y /\ (x = s -> y = t')).
-have gtg: g' \tightens g.
-	rewrite !tight_char.
-	move => x xfd.
-	split => [ | y g'xy]; last by apply g'xy.1.
-	case (classic (x = s)) => [ eq | neq ]; first by exists t'; rewrite eq.
-	by have [y gxy]:= xfd; exists y; by split.
-have [h icf']:= (exists_choice g' t).
-have icf: h \is_choice_for g.
-	apply icf_F2MF_tight.
-	apply/ tight_trans; first by apply/ gtg.
-	by apply icf_F2MF_tight; apply icf'.
-suffices val: h s = t' by rewrite -val; apply/ (prop h icf s t).
-have val': g s t' /\ (s = s -> t' = t') by split.
-by apply: (icf' s t' val').2.
-Qed.
-End tight_comp.
-
-Global Instance icf_prpr S T: Proper (@equiv S T ==> eq ==> iff) (@icf S T).
-Proof. by move => f g feg f' g' f'eg'; rewrite !icf_F2MF_tight feg f'eg'. Qed.
-
+End choice_functions.
 Notation "f '\is_tightened_by' g" := (tight f g) (at level 2).
 Notation "g '\tightens' f" := (tight f g) (at level 2).
 Notation "g '\extends' f" := (exte g f) (at level 50).
 Notation "g '\is_choice_for' f" := (icf f g) (at level 2).
-
-Lemma tight_comp S T R (f f': T ->> R) (g g': S ->> T):
-	f \tightens f' -> g \tightens g' -> (f o g) \tightens (f' o g').
-Proof.
-intros; apply/tight_trans/tight_comp_l; last by apply H.
-apply/tight_trans/tight_comp_r; last by apply H0.
-exact/tight_ref.
-Qed.
-
-Lemma tight_comp_codom S T R (f f': T ->> R) (g g': S ->> T):
-	f \tightens (f' \restricted_to (codom g')) -> g \tightens g' -> (f o g) \tightens (f' o g').
-Proof.
-move => tight tight'.
-apply/tight_trans; first by apply /tight_comp_l_codom/tight.
-by apply/tight_trans/tight_comp_r; [apply/tight_ref | apply tight'].
-Qed.
-
-Lemma tight_inv_comp S T R (f: S ->> T) (g: R ->> T) (h: S ->> R):
-	(f o (h\^-1)) \tightens g -> f \tightens (g o h).
-Proof.
-move => tight; rewrite -(comp_id_r f).
-apply /tight_trans; last by apply /tight_comp_r/icf_F2MF_tight/(@id_icf_mfinv S R h).
-by rewrite -comp_assoc; apply tight_comp_l.
-Qed.
-
-Lemma tot_subs_dom S T R (f: S ->> T) (g: S ->> T) (h: T ->> R):
-	codom g \is_subset_of dom h-> dom (h o g) \is_subset_of dom (h o f) -> dom g \is_subset_of dom f.
-Proof.
-move => tot dm s [t gst].
-have [ | r [[t' []]]]:= dm s; last by exists t'.
-have [ | r htr] //:= tot t; first by exists s.
-by exists r; split => [ | t' gst']; [exists t | apply tot; exists s].
-Qed.

@@ -7,3 +7,4 @@ mf_prod.v
 mf_tight.v
 all_mf.v
 classical_mf.v
+choice_mf.v
