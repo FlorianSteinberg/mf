@@ -98,7 +98,7 @@ Qed.
 Definition mfpp_fun S T S' T' (f: S -> T) (g: S' -> T') := fun p => (f p.1, g p.2).
 Notation "f **_f g" := (mfpp_fun f g) (at level 50).
 
-Lemma mfpp_fun_mfpp (f: S -> T) (g: S' -> T'):
+Lemma mfpp_fun_mfpp Q Q' A A' (f: Q -> A) (g: Q' -> A'):
 	F2MF (f **_f g) =~= (F2MF f) ** (F2MF g).
 Proof.
 split; rewrite /F2MF /=; first by move <-.
@@ -125,6 +125,17 @@ move => [s [somet fst]].
 move => s' t.
 by split => [[k [p [[/= _ eq] eq']]] | ]; [rewrite -eq' | exists s; exists (somet, t)].
 Qed.
+
+Definition uncurry R S T (E: R * S -> T) r:= (fun s => E (r,s)).
+Definition mf_uncurry R S T (E: R * S ->> T) r := make_mf (fun s t => E (r, s) t).
+
+Lemma F2MF_ncry R (E: R * S -> T) r:
+	F2MF (uncurry E r) =~= mf_uncurry (F2MF E) r.
+Proof. done. Qed.
+
+Lemma mf_ncry_prp R (E: R * S ->> T) r:
+	mf_uncurry E r =~= E o ((mf_cnst r) ** mf_id) o mf_diag.
+Proof. by rewrite -mfpp_fun_mfpp comp_assoc !F2MF_comp => s t/=. Qed.
 
 (* A modification of the following construction is used to define the sum of represented spaces. *)
 Definition mfss S T S' T' (f : S ->> T) (g : S' ->> T') :=
