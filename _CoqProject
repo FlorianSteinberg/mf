@@ -3,8 +3,10 @@ mf_set.v
 mf_core.v
 mf_comp.v
 mf_prop.v
-mf_prod.v
 mf_tight.v
+mf_prod.v
+mf_sum.v
+mf_func.v
 all_mf.v
 classical_mf.v
 choice_mf.v
