@@ -6,7 +6,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Section composition.
+Section relational_composition.
 Definition mf_rel_comp R S T (f : S ->> T) (g : R ->> S) :=
 	make_mf (fun r t => (exists s, g r s /\ f s t)).
 Notation "f 'o_R' g" := (mf_rel_comp f g) (at level 50).
@@ -56,12 +56,12 @@ split; first by move => [_ [[Ps <-] ]].
 by move => [ps fst]; exists s.
 Qed.
 
-Lemma comp_id_l S T (f: S ->> T):
+Lemma rcmp_id_l S T (f: S ->> T):
 	mf_id o_R f =~= f.
 Proof. by move => s t; split => [[t' [fst' <-]] | fst]//; exists t. Qed.
 
-Lemma comp_id_r S T (f: S ->> T):
+Lemma rcmp_id_r S T (f: S ->> T):
 	f o_R mf_id =~= f.
 Proof. by move => s t; split => [[t' [-> fst']] | fst]//; exists s. Qed.
-End composition.
+End relational_composition.
 Notation "f 'o_R' g" := (mf_rel_comp f g) (at level 2).
