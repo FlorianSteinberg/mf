@@ -1,6 +1,7 @@
 -R . mpf
 mf_set.v
 mf_core.v
+mf_rcmp.v
 mf_comp.v
 mf_prop.v
 mf_tight.v

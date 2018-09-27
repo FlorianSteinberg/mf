@@ -216,14 +216,14 @@ move => sing subs [dm val].
 split.
 	move => t [r ftr].
 	have [ | s [_ gst]]:= subs t; first by exists r.
-	have sfd: s \from_dom (f' o g) by rewrite sing_rcomp => //; exists r; exists t.
+	have sfd: s \from_dom (f' o g) by rewrite sing_rcmp => //; exists r; exists t.
 	have [r' [[t' [gst' ft'r']] _]]:= dm s sfd.
 	by rewrite (sing s t t') =>//; exists r'.
 move => t [r' f'tr'] r ftr.
 have [ | s [_ gst]]:= subs t; first by exists r'.
-have sfd: s \from_dom (f' o g) by rewrite sing_rcomp => //; exists r'; exists t.
+have sfd: s \from_dom (f' o g) by rewrite sing_rcmp => //; exists r'; exists t.
 have subs':= val s sfd.
-have fgsr: f o g s r by rewrite sing_rcomp => //; exists t.
+have fgsr: f o g s r by rewrite sing_rcmp => //; exists t.
 have [[t' [gst' f't'r]]]:= subs' r fgsr.
 by rewrite (sing s t t').
 Qed.

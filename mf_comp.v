@@ -1,6 +1,6 @@
 (* This file contains basic definitions and Lemmas about multi-valued functions *)
 From mathcomp Require Import all_ssreflect.
-Require Import mf_set mf_core.
+Require Import mf_set mf_core mf_rcmp.
 Require Import CRelationClasses Morphisms.
  
 Set Implicit Arguments.
@@ -9,33 +9,9 @@ Unset Printing Implicit Defensive.
 
 Section composition.
 (* The difference between multivalued functions and relations is how they are composed:
-The relational composition is given as follows.*)
-Definition mf_rel_comp R S T (f : S ->> T) (g : R ->> S) :=
-	make_mf (fun r t => (exists s, g r s /\ f s t)).
-Notation "f 'o_R' g" := (mf_rel_comp f g) (at level 50).
-
-Global Instance relcomp_prpr R S T:
-Proper ((@equiv S T) ==> (@equiv R S) ==> (@equiv R T)) (@mf_rel_comp R S T).
-Proof.
-move => f f' eqf g g' eqg r t.
-by split; move => [s [grs fst]]; exists s; by split; [apply /eqg | apply /eqf].
-Qed.
-
-Lemma relcomp_assoc S T S' T' (f: S' ->> T') g (h: S ->> T):
-	((f o_R g) o_R h) =~= (f o_R (g o_R h)).
-Proof.
-split; last by move => [t' [[s' []]]]; exists s'; split => //; exists t'.
-by move => [t' [hst [s'[]]]]; exists s'; split => //; exists t'.
-Qed.
-
-Lemma rcomp_inv R Q Q' (f: Q ->> Q') (g: R ->> Q):
-	(f o_R g)\^-1 =~= (g\^-1) o_R (f\^-1).
-Proof.
-by move => r q'; split; move =>[q []]; exists q.
-Qed.
-
-(* The multi function composition adds an assumption that removes the symmetry of in- and output.
-The additional condition is that g r is a subset of dom f. *)
+The relational composition can be found in "mf_rcmp.v". The multi function composition
+adds an assumption that removes the symmetry of in- and output. The additional condition
+is that g r is a subset of dom f. *)
 Definition mf_comp R S T (f : S ->> T) (g : R ->> S) :=
 	make_mf (fun r t => (f o_R g) r t /\ (g r) \is_subset_of (dom f)).
 Notation "f 'o' g" := (mf_comp f g) (at level 50).
@@ -56,21 +32,17 @@ split => [[[r [/=-> fst]] prop] | fgrt] //.
 by split => [ | r eq]; [exists (g s) | exists s0; rewrite -eq].
 Qed.
 
-Lemma F2MF_comp R S T (f: S ->> T) (g: R -> S):
-	(f o (F2MF g)) =~= mf.Pack (fun r => f (g r)).
-Proof. exact/comp_F2MF. Qed.
-
 Lemma F2MF_comp_F2MF R S T (f: S -> T) (g: R -> S):
 	(F2MF f o F2MF g) =~= F2MF (fun r => f (g r)).
-Proof. by move => s t; rewrite F2MF_comp /=. Qed.
+Proof. by move => s t; rewrite comp_F2MF /=. Qed.
 
 Notation "f '\is_section_of' g" := (f o g =~= F2MF id) (at level 2).
 
 Lemma sec_cncl S T (f: S -> T) g:
 	(F2MF f) \is_section_of (F2MF g) <-> cancel g f.
 Proof.
-split; last by intros; rewrite F2MF_comp /F2MF => s t; split => <-.
-by move => eq s; move: (eq s s); rewrite (F2MF_comp _ g _ s) /F2MF /= => ->.
+split; last by intros; rewrite comp_F2MF /F2MF => s t; split => <-.
+by move => eq s; move: (eq s s); rewrite (comp_F2MF _ g _ s) /F2MF /= => ->.
 Qed.
 
 Lemma comp_dom R Q Q' (f: Q ->> Q') (g: R ->> Q):
@@ -161,22 +133,5 @@ Proof. by split => //=; move => [[a []]]. Qed.
 
 Lemma comp_empty_r S T R (f: S ->> T): f o (@empty_mf R S) =~= (@empty_mf R T).
 Proof. by split => //=; move => [[a []]]. Qed.
-
-Definition cnst S T (c: T) := (fun (_: S) => c).
-Arguments cnst {S} {T}.
-
-Definition mf_cnst S T (c: T) := F2MF (@cnst S T c).
-Arguments mf_cnst {S} {T}.
-
-Lemma cnst_comp R S T (c: T) (f: R ->> S): (mf_cnst c) o f =~= (mf_cnst c)|_(dom f).
-Proof.
-move => r t.
-split; first by rewrite /=/cnst; move => [[s [frs /=->]] _]; split => //; exists s.
-move => [[s fsr <-]]; split; first by exists s.
-by move => a b; exists c.
-Qed.
 End composition.
-Arguments cnst {S} {T}.
-Arguments mf_cnst {S} {T}.
-Notation "f 'o_R' g" := (mf_rel_comp f g) (at level 2).
 Notation "f 'o' g" := (mf_comp f g) (at level 2).

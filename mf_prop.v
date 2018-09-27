@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import mf_set mf_core mf_comp.
+Require Import mf_set mf_core mf_comp mf_rcmp.
 Import Morphisms.
 
 Set Implicit Arguments.
@@ -16,6 +16,13 @@ split => prp s //=.
 by have /= -> := (prp s).
 Qed.
 
+Lemma rcmp_tot_dom R (f: S ->> T) (g: T ->> R):
+	g \is_total -> (dom f) === (dom (g o_R f)).
+Proof.
+move =>/tot_spec tot s; split => [[t frt] | [r [t []]]]; last by exists t.
+by have[r gtr]:= tot t; exists r; exists t.
+Qed.
+
 Lemma comp_tot_dom R (f: S ->> T) (g: T ->> R):
 	g \is_total -> (dom f) === (dom (g o f)).
 Proof.
@@ -28,6 +35,10 @@ Qed.
 Lemma comp_tot R (f: S ->> T) (g: T ->> R):
 	f \is_total -> g \is_total -> (g o f) \is_total.
 Proof. by move => tot tot'; rewrite -comp_tot_dom. Qed.
+
+Lemma rcmp_tot R (f: S ->> T) (g: T ->> R):
+	f \is_total -> g \is_total -> (g o_R f) \is_total.
+Proof. by move => tot tot'; rewrite -rcmp_tot_dom. Qed.
 
 Lemma tot_subs_dom R (f: S ->> T) (g: S ->> T) (h: T ->> R):
 	codom g \is_subset_of dom h-> dom (h o g) \is_subset_of dom (h o f) -> dom g \is_subset_of dom f.
@@ -44,7 +55,7 @@ Proof. by rewrite tot_spec; move => s; exists (f s). Qed.
 
 (* For total multi valued functions, the relational composition is identical to the multi-
 function composition.  *)
-Lemma tot_comp R  (f : S ->> T) (g : R ->> S):
+Lemma comp_rcmp R  (f : S ->> T) (g : R ->> S):
 	f \is_total -> f o g =~= f o_R g.
 Proof.
 move => tot s t.
@@ -85,7 +96,7 @@ Proof. done. Qed.
 Lemma F2MF_sing (f: S-> T): (F2MF f) \is_singlevalued.
 Proof. by move => s t t' H H0; rewrite -H0. Qed.
 
-Lemma sing_rcomp R Q Q' (f: Q ->> Q') (g: R ->> Q):
+Lemma sing_rcmp R Q Q' (f: Q ->> Q') (g: R ->> Q):
 	g \is_singlevalued -> f o g =~= f o_R g.
 Proof.
 move => sing s r.
@@ -94,6 +105,16 @@ move => [t [gst ftr]].
 split; first by exists t.
 move => t' gst'.
 by rewrite (sing s t' t) => //; exists r.
+Qed.
+
+Lemma rcmp_cotot R (f: R ->> T) (g: S ->> R):
+	f \is_cototal -> g \is_cototal -> (f o_R g) \is_cototal.
+Proof.
+rewrite !cotot_spec.
+move => fct gct t.
+have [r frt]:= fct t.
+have [s gsr]:= gct r.
+by exists s; exists r.
 Qed.
 
 Lemma comp_cotot R (f: R ->> T) (g: S ->> R):
@@ -114,9 +135,9 @@ Lemma sing_inj_comp_inv R Q Q' (f: Q ->> Q') (g: R ->> Q):
 	g \is_singlevalued -> f\^-1 \is_singlevalued -> (f o g)\^-1 =~= (g\^-1) o (f\^-1).
 Proof.
 move => gsing finj.
-rewrite (sing_rcomp f gsing).
-rewrite (sing_rcomp (g\^-1) finj).
-exact/rcomp_inv.
+rewrite (sing_rcmp f gsing).
+rewrite (sing_rcmp (g\^-1) finj).
+exact/rcmp_inv.
 Qed.
 
 Lemma sing_comp_inv (f: S ->> T):
@@ -152,6 +173,13 @@ Lemma comp_sing (f: T ->> T') (g : S ->> T) :
 	f \is_singlevalued -> g \is_singlevalued -> (f o g) \is_singlevalued.
 Proof.
 move => fsing gsing r t t' [[] s [] grs fst _ [][] s' [] grs' fs't' _].
+by rewrite (fsing s t t') => //; rewrite (gsing r s s').
+Qed.
+
+Lemma rcmp_sing (f: T ->> T') (g : S ->> T) :
+	f \is_singlevalued -> g \is_singlevalued -> (f o_R g) \is_singlevalued.
+Proof.
+move => fsing gsing r t t' [s [grs fst]] [s' [grs' fs't]].
 by rewrite (fsing s t t') => //; rewrite (gsing r s s').
 Qed.
 

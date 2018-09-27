@@ -14,7 +14,7 @@ pose g := F2MF (fun (b: bool) => s).
 pose h := @empty_mf bool S.
 suff eq: g =~= h by have /=<-:= eq true s.
 apply inj.
-rewrite F2MF_comp comp_empty_r => q r /=.
+rewrite comp_F2MF comp_empty_r => q r /=.
 by split => // fsr; apply (all r).
 Qed.
 
@@ -31,10 +31,10 @@ case: (classic (f o g r t)) => [cmp | ncmp].
 	move: cmp; rewrite eq'; move => [[s' [grs' fs't]] _].
 	by rewrite (sing t s s').
 have ngrs: ~ g r s.
-	by move => grs; apply /ncmp /tot_comp; try rewrite tot_spec => //; exists s.
+	by move => grs; apply /ncmp /comp_rcmp; try rewrite tot_spec => //; exists s.
 suff nhrs: ~ h r s => //.
 move => hrs; apply /ncmp.
-by rewrite eq'; apply /tot_comp; try rewrite tot_spec => //; exists s.
+by rewrite eq'; apply /comp_rcmp; try rewrite tot_spec => //; exists s.
 Qed.
 
 Lemma sur_cotot (f: S ->> T): f \is_epi -> f \is_cototal.
@@ -70,7 +70,7 @@ Lemma sur_fun_sur (f: S -> T):
 Proof.
 split => sur.
 	move => R g h.
-	rewrite !F2MF_comp => eq s t.
+	rewrite !comp_F2MF => eq s t.
 	have [r <-]:= sur s.
 	exact: (eq r t).
 move => t.
