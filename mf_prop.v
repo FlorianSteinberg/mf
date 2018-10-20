@@ -147,7 +147,7 @@ move => sing s t.
 split => [[[r [fsr ftr]] dm] | ].
 	split; first by exists r.
 	by apply /sing; first apply /fsr.
-move => [/dom_crct[t' fst'] <-].
+move => [[t' fst'] <-].
 split; first by exists t'.
 by move => s'; exists s.
 Qed.

@@ -32,7 +32,6 @@ Global Instance value_prpr S T:
 	Proper (@equiv S T ==> eq ==> (@set_equiv T)) (@mf.value S T).
 Proof. by move => P Q eq s _ <-; apply eq. Qed.
 
-
 Section Basics.
 Definition F2MF S T (f : S -> T) : (S ->> T) := make_mf (fun s t => f s = t).
 (* I'd like this to be a Coercion but it won't allow me to do so. *)
@@ -50,8 +49,8 @@ Proof. done. Qed.
 Global Instance inv_prpr S T: Proper ((@equiv S T) ==> (@equiv T S)) (@mf_inv T S).
 Proof. by move => f g eq s t; apply (eq t s). Qed.
 
-Definition inv_img S T (f: S ->> T) P := make_subset (fun s => intersects P (f s)).
-Lemma inv_img_crct S T (f: S ->> T) P s : inv_img f P s <-> exists t, f s t /\ P t.
+Definition inv_img S T (f: S ->> T) (P: mf_subset.type T) := make_subset (fun s => exists t, f s t /\ P t).
+Lemma invimg_spec S T (f: S ->> T) P s : inv_img f P s <-> intersects P (f s).
 Proof. by split; move => [t []]; exists t. Qed.
 
 Definition img S T (f: S ->> T) P := inv_img (inv f) P.
@@ -59,30 +58,30 @@ Definition img S T (f: S ->> T) P := inv_img (inv f) P.
 (* The domain of a multifunctions is the set of all inputs such that the value set
 is not empty. *)
 Definition dom S T (f: S ->> T) := make_subset (fun s => exists t, f s t).
-Notation "s '\from_dom' f" := (dom f s) (at level 2).
 
-Lemma dom_crct S T (f: S ->> T): dom f === (inv_img f All).
+Lemma dom_crct S T (f: S ->> T) s: s \from dom f <-> exists t, f s t.
+Proof. done. Qed.
+
+Lemma dom_spec S T (f: S ->> T): dom f === (inv_img f All).
 Proof. by split => [[t] | [t []]]; exists t. Qed.
 
 Global Instance dom_prpr S T: Proper ((@equiv S T) ==> (@set_equiv S)) (@dom S T).
 Proof. by move => f g eq s; split; move => [t]; exists t; apply (eq s t). Qed.
 
-Lemma dom_invimg S T (f: S ->> T): (dom f) === (inv_img f All).
-Proof. by split => [[t fst] | [t [_ fst]]]; exists t. Qed.
-
-Definition codom S T (f: S ->> T):= img f (@All S).
+Definition codom S T (f: S ->> T):= make_subset (fun t => exists s, f s t).
 (* the codomain of a multi-valued function is the union of all its value sets. It should
 not be understood as the range, as very few of its elements may be hit by a choice function. *)
-Notation "t '\from_codom' f" := (codom f t) (at level 2).
+Lemma codom_spec S T (f: S ->> T): codom f === (img f All).
+Proof. by split => [[t] | [t []]]; exists t. Qed.
 
-Lemma codom_crct S T (f: S ->> T) t : t \from_codom f <-> exists s, f s t.
-Proof. by split => [[s []] | [s]]; exists s. Qed.
+Lemma codom_crct S T (f: S ->> T) t : t \from codom f <-> exists s, f s t.
+Proof. done. Qed.
 
 Lemma codom_dom_inv S T (f: S ->> T): codom f === dom (f\^-1).
-Proof. by rewrite dom_crct. Qed.
+Proof. done. Qed.
 
 Lemma inv_dom_codom S T (f: S ->> T) t:
-	t \from_codom f <-> t \from_dom (f \inverse).
+	t \from codom f <-> t \from dom (f\^-1).
 Proof. exact/ codom_dom_inv. Qed.
 
 Global Instance codom_prpr S T: Proper ((@equiv S T) ==> (@set_equiv T)) (@codom S T).
@@ -102,10 +101,14 @@ Lemma empty_inv S T:
 	(@empty_mf S T) \inverse =~= (@empty_mf T S).
 Proof. done. Qed.
 
-Definition corestr S T (f: S ->> T) P := make_mf (fun s => intersection P (f s)).
+Definition corestr S T (f: S ->> T) (P: mf_subset.type T) := make_mf (fun s t => P t /\ f s t).
 Notation "f '\corestricted_to' P" := (corestr f P) (at level 2).
+Notation "f '|^' P" := (corestr f P) (format "f '|^' P", at level 2).
 
-Lemma corestr_crct S T (f: S ->> T) P s t: (f \corestricted_to P) s t <-> P t /\ f s t.
+Lemma corestr_crct S T (f: S ->> T) P s t: f|^P s t <-> P t /\ f s t.
+Proof. done. Qed.
+
+Lemma corestr_spec S T (f: S ->> T) P s: (f \corestricted_to P) s  === intersection P (f s).
 Proof. done. Qed.
 
 Lemma corestr_id S T (f: S ->> T): f =~= (f \corestricted_to All).
@@ -118,9 +121,11 @@ move => f g feqg P Q PeqQ s t.
 by split => [[Ps fst] | [Qs gst]]; split => //; try apply PeqQ; try apply feqg.
 Qed.
 
-Definition restr S T (f: S ->> T) P := ((f\^-1)\corestricted_to P)\^-1.
+Definition restr S T (f: S ->> T) (P: mf_subset.type S) := make_mf (fun s t => P s /\ f s t).
 Notation "f '\restricted_to' P" := (restr f P) (at level 2).
 Notation "f '|_' P" := (restr f P) (format "f '|_' P", at level 2).
+
+Lemma corestr_restr_inv S T (f: S ->> T) P: f|_P =~= ((f\^-1)|^P)\^-1.
 
 Lemma restr_crct S T (f: S ->> T) P s t: (f \restricted_to P) s t <-> P s /\ f s t.
 Proof. done. Qed.
@@ -138,8 +143,6 @@ Lemma restr_all S T (f: S ->> T): f|_All =~= f.
 Proof. move => s t; by split => // [[]]. Qed.
 End Basics.
 Notation "f =~= g" := (equiv f g) (at level 70).
-Notation "t '\from_codom' f" := (codom f t) (at level 2).
-Notation "s '\from_dom' f" := (dom f s) (at level 2).
 Notation inv f := (mf_inv f).
 Notation "f '\inverse'" := (mf_inv f) (at level 70).
 Notation "f '\^-1'" := (mf_inv f) (format "f '\^-1'", at level 30).

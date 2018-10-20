@@ -14,7 +14,7 @@ Lemma exists_choice (f: S ->> T) (t: T):
 Proof.
 set R := make_mf (fun s t => forall t', f s t' -> f s t).
 have [s | F tot]:= choice (mf.value R); last by exists F => s; apply /tot.
-case: (classic (s \from_dom f)) => [[] t' fst | false]; first by exists t'.
+case: (classic (s \from dom f)) => [[] t' fst | false]; first by exists t'.
 by exists t => t' fst'; exfalso; apply false; exists t'.
 Qed.
 

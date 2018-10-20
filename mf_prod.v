@@ -26,9 +26,9 @@ Lemma mfpp_tight (f: S ->> T) (g: S' ->> T') (f': S ->> T) (g': S' ->> T'):
 Proof.
 rewrite !tight_char.
 move => tigh tigh' [s s'] [[t t'] [/=f'st fs't']].
-have sfd: s \from_dom f' by exists t.
+have sfd: s \from dom f' by exists t.
 have [[r fsr] prop] := tigh s sfd.
-have s'fd: s' \from_dom g' by exists t'.
+have s'fd: s' \from dom g' by exists t'.
 have [[r' gsr'] prop'] := tigh' s' s'fd.
 split; first by exists (r, r').
 move => [q q'] [/= fsq gs'q'].
@@ -52,14 +52,14 @@ Definition ppp2 (fg: (S * S') ->> (T * T')) :=
 	make_mf (fun s' t' => exists s p, fg (s, s') p /\ p.2 = t').
 
 Lemma ppp1_proj (f: S ->> T) (g: S' ->> T'):
-	(exists s', s' \from_dom g) -> ppp1 (f ** g) =~= f.
+	(exists s', s' \from dom g) -> ppp1 (f ** g) =~= f.
 Proof.
 move => [s' [t' gs't']].
 by split => [[k [p [[/= eq _] eq']]] | ]; [rewrite -eq' | exists s'; exists (s0, t')].
 Qed.
 
 Lemma ppp2_proj (f: S ->> T) (g: S' ->> T'):
-	(exists s, s \from_dom f) -> ppp2 (f ** g) =~= g.
+	(exists s, s \from dom f) -> ppp2 (f ** g) =~= g.
 Proof.
 move => [s [somet fst]].
 move => s' t.
@@ -100,9 +100,9 @@ split => [[] [] fgx [] [] | [] [] [] s1 []]; last first.
 	by move: (H s'1 fs') (H' s'2 gs') => [] t' fst [] t'' ; exists (t',t'').
 move => fxfgx gxfgx [] ffgxffggx gfgxffggx H.
 split; split => [ | s' f'xs]; [by exists fgx.1 | | by exists fgx.2 | ].
-	have temp: ((s', fgx.2) \from_dom (f ** g)) by apply: ((H (s', fgx.2))).
+	have temp: ((s', fgx.2) \from dom (f ** g)) by apply: ((H (s', fgx.2))).
 	by move: temp => [] [] x1 x2 [] /= fsx1; exists x1.
-have temp: ((fgx.1,s') \from_dom (f ** g)) by apply: ((H (fgx.1, s'))).
+have temp: ((fgx.1,s') \from dom (f ** g)) by apply: ((H (fgx.1, s'))).
 by move: temp => [] [] x1 x2 [] /= fsx1; exists x2.
 Qed.
 

@@ -10,12 +10,12 @@ Unset Printing Implicit Defensive.
 Definition tight S T (g f: S ->> T) :=
 	(dom g) \is_subset_of (dom f)
 	/\
-	forall s, s \from_dom g -> (f s) \is_subset_of (g s).
+	forall s, s \from dom g -> (f s) \is_subset_of (g s).
 Notation "f '\is_tightened_by' g" := (tight f g) (at level 2).
 Notation "g '\tightens' f" := (tight f g) (at level 2).
 
 Lemma tight_char S T (f g: S ->> T):
-	f \tightens g <-> forall s, s \from_dom g -> s \from_dom f /\ forall t, f s t -> g s t.
+	f \tightens g <-> forall s, s \from dom g -> s \from dom f /\ forall t, f s t -> g s t.
 Proof.
 split => [[dom val] s sfd | tight]; first by split; [apply dom | apply val].
 split => s sfd; first by have []:= tight s.
@@ -151,7 +151,7 @@ Lemma tight_comp_r R (f: T ->> R) g (g': S ->> T):
 Proof.
 rewrite !tight_char.
 move => gtg' s [r [[t [g'st ftr]] prop]].
-have sfd: s \from_dom g' by exists t.
+have sfd: s \from dom g' by exists t.
 have [t' gst']:= (gtg' s sfd).1.
 have g'st': g' s t' by apply (gtg' s sfd).2.
 move: (prop t' g'st') => [r' fgsr'].
@@ -163,7 +163,7 @@ split => //; by exists t''; split => //; apply (gtg' s sfd).2.
 Qed.
 
 Lemma restr_dom (f: S ->> T) P s:
-s \from_dom (f \restricted_to P) <-> s \from_dom f /\ P s.
+s \from dom (f \restricted_to P) <-> s \from dom f /\ P s.
 Proof. by split => [[t []] | [[t]]]; first split; try by exists t. Qed.
 
 Lemma tight_exte_dom (f g: S ->> T):
@@ -188,7 +188,7 @@ Lemma tight_comp_l_codom R (f f': T ->> R) (g: S ->> T):
 Proof.
 rewrite !tight_char.
 move => ftf' s [r [[t [gst f'tr]] prop]].
-have tfd: t \from_dom (f' \restricted_to (codom g)) by exists r; split => //; exists s.
+have tfd: t \from dom (f' \restricted_to (codom g)) by exists r; split => //; exists s.
 have [r' ftr']:= (ftf' t tfd).1.
 have f'tr': f' t r' by apply (ftf' t tfd).2.
 split; first exists r'.
@@ -215,13 +215,13 @@ Proof.
 move => sing subs [dm val].
 split.
 	move => t [r ftr].
-	have [ | s [_ gst]]:= subs t; first by exists r.
-	have sfd: s \from_dom (f' o g) by rewrite sing_rcmp => //; exists r; exists t.
+	have [ | s gst]:= subs t; first by exists r.
+	have sfd: s \from dom (f' o g) by rewrite sing_rcmp => //; exists r; exists t.
 	have [r' [[t' [gst' ft'r']] _]]:= dm s sfd.
 	by rewrite (sing s t t') =>//; exists r'.
 move => t [r' f'tr'] r ftr.
-have [ | s [_ gst]]:= subs t; first by exists r'.
-have sfd: s \from_dom (f' o g) by rewrite sing_rcmp => //; exists r'; exists t.
+have [ | s gst]:= subs t; first by exists r'.
+have sfd: s \from dom (f' o g) by rewrite sing_rcmp => //; exists r'; exists t.
 have subs':= val s sfd.
 have fgsr: f o g s r by rewrite sing_rcmp => //; exists t.
 have [[t' [gst' f't'r]]]:= subs' r fgsr.
@@ -320,7 +320,7 @@ Proof.
 rewrite !tight_char.
 split => [ icf s [] t fst | tight s t fst].
 	by split => [ | gs eq ]; [exists (g s) | rewrite -eq; apply: (icf s t)].
-have ex: s \from_dom f by exists t.
+have ex: s \from dom f by exists t.
 by apply ((tight s ex).2 (g s)).
 Qed.
 

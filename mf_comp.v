@@ -50,7 +50,7 @@ Lemma comp_dom R Q Q' (f: Q ->> Q') (g: R ->> Q):
 Proof. by move => r [s [[t[]]]]; exists t. Qed.
 
 Lemma comp_subs_dom R S T (f: S ->> T) (g: T ->> R) s:
-	f s \is_subset_of dom g -> s \from_dom f <-> s \from_dom (g o f).
+	f s \is_subset_of dom g -> s \from dom f <-> s \from dom (g o f).
 Proof.
 move => subs.
 split; last by move => [r [[t [fst]]]]; exists t.
