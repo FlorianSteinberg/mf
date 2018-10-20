@@ -59,12 +59,10 @@ Arguments mf_diag {S}.
 
 Lemma tight_fprd_diag (f: S ->> T): (mf_diag o f) \tightens ((f ** f) o mf_diag).
 Proof.
-split.
-	rewrite comp_F2MF => s [[t t'] [fst fst']].
-	rewrite comp_rcmp; last exact /F2MF_tot.
-	exists (t, t); exists t; split => //.
-move => s sfd [_ _] [[t] [fst [<- <-]] _].
-by rewrite comp_F2MF /=.
+apply split_tight => [ | s sfd [_ _] [[t] [fst [<- <-]] _]]; last by rewrite comp_F2MF.
+rewrite comp_F2MF => s [[t t'] [fst fst']].
+rewrite comp_rcmp; last exact /F2MF_tot.
+exists (t, t); exists t; split => //.
 Qed.
 
 Lemma fprd_diag (f: S ->> T): f \is_singlevalued -> (f ** f) o mf_diag =~= mf_diag o f.

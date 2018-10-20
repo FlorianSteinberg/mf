@@ -1,31 +1,20 @@
 (* This file contains basic definitions and Lemmas about multi-valued functions *)
 From mathcomp Require Import all_ssreflect.
-Require Import mf_set mf_core mf_comp mf_prop.
+Require Import mf_set mf_core mf_rcmp mf_comp mf_prop.
 Import Morphisms.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Definition tight S T (g f: S ->> T) :=
-	(dom g) \is_subset_of (dom f)
-	/\
-	forall s, s \from dom g -> (f s) \is_subset_of (g s).
+Definition tight S T (g f: S ->> T) := forall s, s \from dom g -> s \from dom f /\ forall t, f s t -> g s t.
 Notation "f '\is_tightened_by' g" := (tight f g) (at level 2).
 Notation "g '\tightens' f" := (tight f g) (at level 2).
-
-Lemma tight_char S T (f g: S ->> T):
-	f \tightens g <-> forall s, s \from dom g -> s \from dom f /\ forall t, f s t -> g s t.
-Proof.
-split => [[dom val] s sfd | tight]; first by split; [apply dom | apply val].
-split => s sfd; first by have []:= tight s.
-by move => t fst; have[_ prp]:= tight s sfd; apply prp.
-Qed.
 
 Global Instance tight_prpr S T:
 	Proper ((@equiv S T) ==> (@equiv S T) ==> iff) (@tight S T).
 Proof.
-move => f f' eqf g g' eqg; rewrite !tight_char.
+move => f f' eqf g g' eqg.
 split => tight s sfd; split => [ | t gst].
 			by rewrite -eqg; have [ | fd prp]:= tight s; first by rewrite eqf.
 		by have [ | fd prp]:= tight s; [rewrite eqf| rewrite -(eqf s t); apply prp; rewrite (eqg s t)].
@@ -36,54 +25,53 @@ Qed.
 Section tight.
 Context (S T: Type).
 
+Lemma split_tight (f g: S ->> T):
+	(dom g) \is_subset_of (dom f) -> (forall s, s \from dom g -> (f s) \is_subset_of (g s)) ->
+		f \tightens g.
+Proof. by move => dm val; split; [apply/dm | apply/val]. Qed.
+
+Lemma tight_dom (f g: S ->> T):
+	f \tightens g -> (dom g) \is_subset_of (dom f).
+Proof. by move => tight s sfd; have []:= tight s sfd. Qed.
+
+Lemma tight_val (f g: S ->> T) s:
+	f \tightens g -> s \from dom g -> (f s) \is_subset_of (g s).
+Proof. by move => tight sfd; have []:= tight s sfd. Qed.
+
 Lemma tight_equiv (f g: S ->> T): f \tightens g -> g \tightens f -> f =~= g.
 Proof.
-move => [dm val] [dm' val'] s t.
+move => tight tight' s t.
 split => [fst | gst].
-	by apply /val; first by apply /dm'; exists t.
-by apply /val'; first by apply /dm; exists t.
+	by apply /(tight_val tight); first by apply /(tight_dom tight'); exists t.
+by apply /(tight_val tight'); first by apply /(tight_dom tight); exists t.
 Qed.
 
-(* A thightening is a generalization of an extension of a single-valued function
-to multivalued functions. It reduces to the usual notion of extension for single valued
-functions: A single valued function g tightens a single valued function f if and only
-if "forall s, (exists t, f(s) = t) -> g(s) = f(s)". This formula can also be written as
-"forall s t, f(s) = t -> g(s) = t" and the equivalence is proven in the next lemmas.*)
-Definition exte S T (g f: S ->> T) := forall s, (f s) \is_subset_of (g s).
+Definition exte S T (g f: S ->> T) := forall s, f s \is_subset_of g s.
 Notation "g '\extends' f" := (exte g f) (at level 50).
 
-Lemma exte_char (g f: S ->> T):
-	g \extends f <-> forall s t, f s t -> g s t.
-Proof. done. Qed.
-
 Lemma exte_restr (f: S ->> T) P Q: P \is_subset_of Q -> f|_Q \extends f|_P.
-Proof.
-rewrite exte_char.
-move => subs s t [Ps fst].
-by split => //; apply subs.
-Qed.
+Proof. by move => subs s t []; split => //; apply subs. Qed.
 
 (* tight is almost an equivalence relation, it only fails to be symmetric *)
 Global Instance tight_ref: Reflexive (@tight S T).
-Proof. by move => f; rewrite !tight_char. Qed.
+Proof. done. Qed.
 
 Global Instance tight_trans:
 	Transitive (@tight S T).
 Proof.
-move => f g h.
-move => [dm' val'] [dm val].
-split => [ | s sfd]; first exact /(subs_trans dm' dm).
-have hsf := val s (dm' s sfd).
-exact/(subs_trans hsf (val' s sfd)).
+move => f g h tight tight'.
+apply /split_tight => [ | s sfd]; first exact/subs_trans/tight_dom/tight'/tight_dom.
+exact/subs_trans/tight_val/sfd/tight/tight_val/tight_dom/sfd.
 Qed.
 
 Lemma sing_tight_exte (f: S ->> T) g:
 	f \is_singlevalued -> g \tightens f -> g \extends f.
 Proof.
-move => fsing [dm val] s t fst.
-have [ | t' gst']:= dm s; first by exists t.
-rewrite (fsing s t t') //.
-by apply val => //; exists t.
+move => sing tight s t fst.
+have sfd: s \from dom f by exists t.
+have [t' gst']:= tight_dom tight sfd.
+rewrite (sing s t t') //.
+exact/tight_val/gst'.
 Qed.
 
 Lemma exte_dom (f g: S ->> T):
@@ -94,7 +82,7 @@ Lemma sing_exte_tight (f: S ->> T) g:
 	g \is_singlevalued -> g \extends f -> g \tightens f.
 Proof.
 move => gsing exte.
-split => s [t]; first by exists t; apply exte.
+apply split_tight => s [t]; first by exists t; apply exte.
 move => fst t' gst'; have gst := exte s t fst.
 by rewrite (gsing s t' t).
 Qed.
@@ -117,20 +105,22 @@ have [r' f't'r']:= prop.
 by exists r'; apply fef.
 Qed.
 
+Lemma tight_restr_w (f: S ->> T) P: f \tightens (f \restricted_to P).
+Proof. by move => s [t [Ps fst]]; by split; first by exists t. Qed.
+
 Lemma tight_restr_r (f g: S ->> T) P Q:
-	P \is_subset_of Q -> f \tightens (g \restricted_to Q) -> f \tightens (g \restricted_to P).
+	P \is_subset_of Q -> f \tightens (g|_Q) -> f \tightens (g|_P).
 Proof.
-rewrite !tight_char.
-move => subs tight s [t [Ps gst]].
-have [ | [t' fst' prp]]:= tight s; first by exists t; split; try apply subs.
-split => [ | t'' fst'']; first by exists t'.
-by split; last by apply prp.
+move => subs tight s dm.
+split => [ | t fst /=]; first by apply/tight_dom; first exact/tight; first exact/dom_restr_subs/dm.
+split; first by move: dm => [t' /= []].
+suff: g|_Q s t by rewrite /= => [[]].
+by apply /tight_val /fst/dom_restr_subs/dm.
 Qed.
 
 Lemma tight_restr_l (f g: S ->> T) P Q:
 	P \is_subset_of Q -> (f \restricted_to P) \tightens g -> (f \restricted_to Q) \tightens g.
 Proof.
-rewrite !tight_char.
 move => subs tight s [t gst].
 have [ | [t' [Ps fst'] prp]]:= tight s; first by exists t.
 split => [ | t'' [Qs fst'']]; first by exists t'; split; try apply subs.
@@ -143,13 +133,9 @@ Proof.
 move => subs; apply /(tight_restr_l subs)/tight_ref.
 Qed.
 
-Lemma tight_restr_w (f: S ->> T) P: f \tightens (f \restricted_to P).
-Proof. by rewrite !tight_char; move => s [t [Ps fst]]; by split; first by exists t. Qed.
-
 Lemma tight_comp_r R (f: T ->> R) g (g': S ->> T):
 	g \tightens g' -> (f o g) \tightens (f o g').
 Proof.
-rewrite !tight_char.
 move => gtg' s [r [[t [g'st ftr]] prop]].
 have sfd: s \from dom g' by exists t.
 have [t' gst']:= (gtg' s sfd).1.
@@ -162,31 +148,27 @@ move => r'' [[t'' [gst'' ft''r'']] prop'].
 split => //; by exists t''; split => //; apply (gtg' s sfd).2.
 Qed.
 
-Lemma restr_dom (f: S ->> T) P s:
-s \from dom (f \restricted_to P) <-> s \from dom f /\ P s.
-Proof. by split => [[t []] | [[t]]]; first split; try by exists t. Qed.
-
 Lemma tight_exte_dom (f g: S ->> T):
 	g \extends f -> f \tightens (g \restricted_to (dom f)).
 Proof.
-split => [s | s]; first by rewrite restr_dom => [[]].
-by rewrite restr_dom => [[sfdf sfdg]] t fst; split; last apply H.
+move => exte.
+apply split_tight => [s | s]; first by rewrite dom_restr_spec => [[]].
+by rewrite dom_restr_spec => [[sfdf sfdg]] t fst; split; last apply exte.
 Qed.
 End tight.
 
 Section tight_comp.
-Context (S T: Type).
-
-Lemma tight_id_inv R R' (f: R ->> R'): mf_id \tightens (f\^-1 o f).
+Lemma tight_id_inv S T (f: S ->> T): mf_id \tightens (f\^-1 o f).
 Proof.
-split => [ | s [s' [[t [fst fs't]]] subs]]; first by rewrite F2MF_tot; apply: subs_all.
+apply split_tight => [ | s [s' [[t [fst fs't]]] subs]]; first by rewrite F2MF_dom; apply subs_all.
 by move => _ <-; split; first by exists t.
 Qed.
 
-Lemma tight_comp_l_codom R (f f': T ->> R) (g: S ->> T):
+Arguments tight_id_inv {S} {T} (f).
+
+Lemma tight_comp_l_codom R S T (f f': T ->> R) (g: S ->> T):
 	f \tightens (f' \restricted_to (codom g)) -> (f o g) \tightens (f' o g).
 Proof.
-rewrite !tight_char.
 move => ftf' s [r [[t [gst f'tr]] prop]].
 have tfd: t \from dom (f' \restricted_to (codom g)) by exists r; split => //; exists s.
 have [r' ftr']:= (ftf' t tfd).1.
@@ -201,34 +183,31 @@ apply ftf'; have [r''' f't''r'']:= prop t'' gst'' => //.
 by exists r'''; split => //; exists s.
 Qed.
 
-Lemma tight_comp_l R (f f': T ->> R) (g: S ->> T):
+Lemma tight_comp_l R S T (f f': T ->> R) (g: S ->> T):
 	f \tightens f' -> (f o g) \tightens (f' o g).
 Proof.
-move => tight.
-apply tight_comp_l_codom.
+move => tight; apply tight_comp_l_codom.
 by apply /tight_trans; first apply /tight_restr_w.
 Qed.
 
-Lemma cotot_tight_comp_l R (f f': T ->> R) (g: S ->> T):
+Lemma cotot_tight_comp_l R S T (f f': T ->> R) (g: S ->> T):
 	g \is_singlevalued -> dom f' \is_subset_of codom g -> (f o g) \tightens (f' o g) -> f \tightens f'.
 Proof.
-move => sing subs [dm val].
-split.
-	move => t [r ftr].
+move => sing subs tight.
+apply split_tight => [t [r ftr] | t [r' f'tr'] r ftr].
 	have [ | s gst]:= subs t; first by exists r.
 	have sfd: s \from dom (f' o g) by rewrite sing_rcmp => //; exists r; exists t.
-	have [r' [[t' [gst' ft'r']] _]]:= dm s sfd.
+	have [r' [[t' [gst' ft'r']] _]]:= tight_dom tight sfd.
 	by rewrite (sing s t t') =>//; exists r'.
-move => t [r' f'tr'] r ftr.
 have [ | s gst]:= subs t; first by exists r'.
 have sfd: s \from dom (f' o g) by rewrite sing_rcmp => //; exists r'; exists t.
-have subs':= val s sfd.
+have subs':= tight_val tight sfd.
 have fgsr: f o g s r by rewrite sing_rcmp => //; exists t.
 have [[t' [gst' f't'r]]]:= subs' r fgsr.
 by rewrite (sing s t t').
 Qed.
 
-Lemma tight_comp R (f f': T ->> R) (g g': S ->> T):
+Lemma tight_comp R S T (f f': T ->> R) (g g': S ->> T):
 	f \tightens f' -> g \tightens g' -> (f o g) \tightens (f' o g').
 Proof.
 intros; apply/tight_trans/tight_comp_l; last by apply H.
@@ -236,7 +215,7 @@ apply/tight_trans/tight_comp_r; last by apply H0.
 exact/tight_ref.
 Qed.
 
-Lemma tight_comp_codom R (f f': T ->> R) (g g': S ->> T):
+Lemma tight_comp_codom R S T (f f': T ->> R) (g g': S ->> T):
 	f \tightens (f' \restricted_to (codom g')) -> g \tightens g' -> (f o g) \tightens (f' o g').
 Proof.
 move => tight tight'.
@@ -244,7 +223,7 @@ apply/tight_trans; first by apply /tight_comp_l_codom/tight.
 by apply/tight_trans/tight_comp_r; [apply/tight_ref | apply tight'].
 Qed.
 
-Lemma tight_inv_comp R (f: S ->> R) (g: T ->> R) (h: S ->> T):
+Lemma tight_inv_comp R S T (f: S ->> R) (g: T ->> R) (h: S ->> T):
 	(f o (h\^-1)) \tightens g -> f \tightens (g o h).
 Proof.
 move => tight; rewrite -(comp_id_r f).
@@ -252,56 +231,12 @@ apply /tight_trans; last apply /tight_comp_r/(tight_id_inv h).
 by rewrite -comp_assoc; apply tight_comp_l.
 Qed.
 
-Lemma tight_comp_inv R (f: S ->> T) (g: R ->> T) (h: S ->> R):
-	h \is_surjective_partial_function -> g \is_singlevalued ->
-		f \tightens (g o h) <-> (f o (mf_inv h)) \tightens g.
+Lemma tight_comp_inv R S T (f: S ->> R) (g: T ->> R) (h: S ->> T):
+	h \is_surjective_partial_function -> f \tightens (g o h) <-> (f o (mf_inv h)) \tightens g.
 Proof.
-rewrite !tight_char.
-move => [sing /cotot_spec cotot] gsing; split.
-	move => tight r [t grt].
-	have prp: forall s, h s r -> exists t' r', f s t' /\ h s r' /\ g r' t'.
-		move => s hsr; have [ | [t' fst'] prp]:= tight s.
-			exists t; split => [ | r' hsr']; first by exists r.
-			by rewrite (sing s r' r) => //; exists t.
-			exists t'; have [ | [r' [hsr' gr't']] dom]:= prp t' => //.
-			by exists r'.
-	split; first exists t.
-		split => [ |  s hrs]; first have [s hrs]:= cotot r; [exists s | exists t];
-		have [t' [r' [fst' [hsr' gr't']]]]:= prp s hrs;
-		rewrite (sing s r' r) in gr't' => //;
-		by rewrite (gsing r t t').
-	move => t' [[s [hsr fst']] _].
-	have [ | _ prp']:= tight s.
-		exists t.
-		split; first by exists r.
-		move => r' hsr'.
-		rewrite (sing s r' r) => //.
-		by exists t.
-	have [ | [r' [hsr' gr't']] dom']:= prp' t' => //.
-	have ghst': g o h s t' by split; first by exists r'.
-	have ghst: g o h s t.
-		split; first by exists r.
-		move => r'' hsr''.
-		rewrite (sing s r'' r) => //.
-		by exists t.
-	have cmp_sing: g o h \is_singlevalued by apply comp_sing.
-	by rewrite (cmp_sing s t' t).
-move => tight s [t [[r [hsr grt]]] subs].
-split.
-	exists t.
-	have [ | [_ [_ cnd] prp]]:= tight r; first by exists t.
-	have [t' fst']:= cnd s hsr.
-	rewrite (gsing r t t') => //.
-	by apply prp; split; first exists s.
-move => t' fst'.
-split => //.
-exists r; split => //.
-have [ | _ prp]:= tight r; first by exists t.
-apply prp.
-split; first by exists s.
-move => s' hs'r.
-have [ | [t'' [[s'']]fht''r prp'] _]:= tight r; first by exists t.
-by have := prp' s' hs'r.
+move => [sing /cotot_spec eq]; split => tight; last exact/tight_inv_comp.
+rewrite -(restr_all g) -eq -comp_id_restr -sing_comp_inv // -comp_assoc.
+exact/tight_comp_l.
 Qed.
 End tight_comp.
 
@@ -317,7 +252,6 @@ exists for any multivalued function (see "choice_mf.v"). *)
 Lemma icf_F2MF_tight (g: S -> T) f:
 	g \is_choice_for f <-> (F2MF g) \tightens f.
 Proof.
-rewrite !tight_char.
 split => [ icf s [] t fst | tight s t fst].
 	by split => [ | gs eq ]; [exists (g s) | rewrite -eq; apply: (icf s t)].
 have ex: s \from dom f by exists t.
@@ -333,7 +267,7 @@ Proof. by move => s s' [[t [fst _]] _]; split; [exists t | exists s]. Qed.
 Lemma sing_tot_F2MF_icf (f: S ->> T) g:
 	f \is_singlevalued -> f \is_total -> (g \is_choice_for f <-> F2MF g =~= f).
 Proof.
-move => sing /tot_spec tot.
+move => sing tot.
 split => [icf s t| eq s t fst]; last by by rewrite ((eq s t).2 fst).
 split => [ eq | fst ]; last by rewrite (sing s t (g s)); last by apply (icf s t fst).
 by have [t' fst']:= (tot s); by rewrite -eq; apply (icf s t').
@@ -352,12 +286,7 @@ Qed.
 
 Lemma tight_icf (g f: S ->> T):
 	g \tightens f -> forall h, (h \is_choice_for g -> h \is_choice_for f).
-Proof.
-move => tight h icf.
-apply/ icf_F2MF_tight.
-apply/ tight_trans; first by apply tight.
-by apply/ icf_F2MF_tight.
-Qed.
+Proof. by move => tight h icf; apply/icf_F2MF_tight/tight_trans/icf_F2MF_tight/icf. Qed.
 End choice_functions.
 Notation "f '\is_tightened_by' g" := (tight f g) (at level 2).
 Notation "g '\tightens' f" := (tight f g) (at level 2).

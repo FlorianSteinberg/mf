@@ -7,8 +7,7 @@ Context (S T: Type).
 
 Lemma mono_tot (f: S ->> T): f \is_mono -> f \is_total.
 Proof.
-move => inj.
-rewrite tot_spec => s.
+move => inj s.
 apply not_all_not_ex => all.
 pose g := F2MF (fun (b: bool) => s).
 pose h := @empty_mf bool S.
@@ -20,7 +19,7 @@ Qed.
 
 Lemma sing_tot_mono (f: S ->> T): (mf_inv f) \is_singlevalued -> f \is_total -> f \is_mono.
 Proof.
-move => sing /tot_spec tot R g h eq r s.
+move => sing tot R g h eq r s.
 have [t fst]:= tot s.
 have eq':= eq r t.
 case: (classic (f o g r t)) => [cmp | ncmp].
@@ -30,17 +29,14 @@ case: (classic (f o g r t)) => [cmp | ncmp].
 	suff: h r s => //.
 	move: cmp; rewrite eq'; move => [[s' [grs' fs't]] _].
 	by rewrite (sing t s s').
-have ngrs: ~ g r s.
-	by move => grs; apply /ncmp /comp_rcmp; try rewrite tot_spec => //; exists s.
+have ngrs: ~ g r s by move => grs; apply/ncmp/comp_rcmp => //; exists s.
 suff nhrs: ~ h r s => //.
-move => hrs; apply /ncmp.
-by rewrite eq'; apply /comp_rcmp; try rewrite tot_spec => //; exists s.
+by move => hrs; apply /ncmp; rewrite eq'; apply /comp_rcmp => //; exists s.
 Qed.
 
 Lemma sur_cotot (f: S ->> T): f \is_epi -> f \is_cototal.
 Proof.
-move => fsur.
-rewrite cotot_spec => t.
+move => fsur t.
 pose g := make_mf (fun t' b => t = t' /\ b = true).
 pose h := make_mf (fun t' b => t = t' /\ b = false).
 apply NNPP => notcodom.
@@ -55,7 +51,7 @@ Qed.
 Lemma sing_cotot_sur (f: S ->> T):
 f \is_singlevalued -> (f \is_cototal <-> f \is_epi).
 Proof.
-split => [/cotot_spec fcotot Q g h eq t q| ]; last exact: sur_cotot.
+split => [fcotot Q g h eq t q| ]; last exact: sur_cotot.
 split => ass; move: (fcotot t) => [] s fst.
 	suffices gfsq: (g o f) s q.
 		by move: ((eq s q).1 gfsq) => [] [] t' [] fst'; rewrite (H s t t').
@@ -74,7 +70,7 @@ split => sur.
 	have [r <-]:= sur s.
 	exact: (eq r t).
 move => t.
-have /cotot_spec cotot: (F2MF f) \is_cototal by apply sur_cotot.
+have cotot: (F2MF f) \is_cototal by apply sur_cotot.
 have [s fst]:= cotot t.
 by exists s.
 Qed.

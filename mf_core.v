@@ -59,7 +59,7 @@ Definition img S T (f: S ->> T) P := inv_img (inv f) P.
 is not empty. *)
 Definition dom S T (f: S ->> T) := make_subset (fun s => exists t, f s t).
 
-Lemma dom_crct S T (f: S ->> T) s: s \from dom f <-> exists t, f s t.
+Lemma dom_crct S T f (s: S): s \from dom (make_mf f) <-> exists (t: T), f s t.
 Proof. done. Qed.
 
 Lemma dom_spec S T (f: S ->> T): dom f === (inv_img f All).
@@ -67,6 +67,9 @@ Proof. by split => [[t] | [t []]]; exists t. Qed.
 
 Global Instance dom_prpr S T: Proper ((@equiv S T) ==> (@set_equiv S)) (@dom S T).
 Proof. by move => f g eq s; split; move => [t]; exists t; apply (eq s t). Qed.
+
+Lemma F2MF_dom S T (f: S -> T): dom (F2MF f) === All.
+Proof. by move => s; split => // _; exists (f s). Qed.
 
 Definition codom S T (f: S ->> T):= make_subset (fun t => exists s, f s t).
 (* the codomain of a multi-valued function is the union of all its value sets. It should
@@ -124,6 +127,17 @@ Qed.
 Definition restr S T (f: S ->> T) (P: mf_subset.type S) := make_mf (fun s t => P s /\ f s t).
 Notation "f '\restricted_to' P" := (restr f P) (at level 2).
 Notation "f '|_' P" := (restr f P) (format "f '|_' P", at level 2).
+
+Lemma restr_dom S T (f: S ->> T): f|_(dom f) =~= f.
+Proof. by move => s t; split => [[] | fst] //; split => //; exists t. Qed.
+
+Lemma dom_restr_spec S T (f: S ->> T) P s:
+s \from dom (f|_P) <-> s \from dom f /\ P s.
+Proof. by split => [[t []] | [[t]]]; first split; try by exists t. Qed.
+
+Lemma dom_restr_subs S T (f: S ->> T) P Q:
+	P \is_subset_of Q -> dom (f|_P) \is_subset_of dom (f|_Q).
+Proof. by move => subs s [t [fst Pt]]; exists t; split; first apply/subs. Qed.
 
 Lemma corestr_restr_inv S T (f: S ->> T) P: f|_P =~= ((f\^-1)|^P)\^-1.
 

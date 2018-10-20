@@ -21,16 +21,15 @@ Qed.
 Lemma F2MF_sing_tot (f: S ->> T) (t: T):
 	f \is_singlevalued /\ f \is_total <-> exists g, (F2MF g) =~= f.
 Proof.
-split => [ [sing tot] | [g eq] ].
+split => [ [sing tot] | [g eq]].
 	have [g icf]:= exists_choice f t.
-	exists g; by apply/ sing_tot_F2MF_icf.
+	exists g; by apply/sing_tot_F2MF_icf.
 by split; rewrite -eq; [apply F2MF_sing | apply F2MF_tot].
 Qed.
 
 Lemma icf_tight (g f: S ->> T): (forall s, exists t', ~ f s t')
 	-> (forall h, (h \is_choice_for g -> h \is_choice_for f)) -> (g \tightens f).
 Proof.
-rewrite !tight_char.
 move => ex prop s [t fst].
 split => [ | t' gst'].
 	have [t' nfst']:= (ex s).
@@ -49,7 +48,6 @@ split => [ | t' gst'].
 	by apply (icf' s t' g'st').2.
 pose g' := make_mf (fun x y => g x y /\ (x = s -> y = t')).
 have gtg: g' \tightens g.
-	rewrite !tight_char.
 	move => x xfd.
 	split => [ | y g'xy]; last by apply g'xy.1.
 	case (classic (x = s)) => [ eq | neq ]; first by exists t'; rewrite eq.

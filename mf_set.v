@@ -13,6 +13,7 @@ P :> S -> Prop;
 End mf_subset.
 Coercion mf_subset.P: mf_subset.type >-> Funclass.
 Definition make_subset S (P: S -> Prop):= (mf_subset.Pack P).
+Notation subset S := (mf_subset.type S).
 
 Section mf_subsets.
 Context (S: Type).
