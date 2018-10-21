@@ -44,12 +44,14 @@ Proof.
 by move => P Q PeQ P' Q' P'eQ'; split => subs s; intros; apply /P'eQ' /subs /PeQ.
 Qed.
 
-Lemma subs_trans (P P' P'': set):
-	P \is_subset_of P' -> P' \is_subset_of P'' -> P \is_subset_of P''.
-Proof. by move => PsP' P'sP'' s Ps; apply/P'sP''/PsP'. Qed.
+Global Instance subs_ref: Reflexive subs.
+Proof. by move => P P'. Qed.
+
+Global Instance subs_trans: Transitive subs.
+Proof. by move => P P' P'' PsP' P'sP'' s Ps; apply/P'sP''/PsP'. Qed.
 
 Lemma set_eq_subs P Q:
-	set_equiv  P Q <-> (P \is_subset_of Q /\ Q \is_subset_of P).
+	P === Q <-> (P \is_subset_of Q /\ Q \is_subset_of P).
 Proof.
 split; first by move => eq; split => s Ps; apply eq.
 move => [subs subs'] s.
@@ -57,7 +59,7 @@ split => Ps; try apply subs => //.
 by apply subs'.
 Qed.
 
-Lemma set_eq_sqv (P Q: set): P \is_subset_of Q -> Q \is_subset_of P -> P === Q.
+Lemma split_set_eq (P Q: set): P \is_subset_of Q -> Q \is_subset_of P -> P === Q.
 Proof. by move => subs subs' s; split; [apply subs | apply subs']. Qed.
 
 Definition All := make_subset (fun (_: S) => True).
@@ -67,7 +69,7 @@ Proof. done. Qed.
 
 Definition empty := make_subset (fun (_: S) => False).
 
-Lemma subs_emptly P : empty \is_subset_of P.
+Lemma subs_empty P : empty \is_subset_of P.
 Proof. done. Qed.
 
 Definition intersects (P Q: set) := exists s, P s /\ Q s.
@@ -78,7 +80,7 @@ Proof. by split; move => [s []]; exists s. Qed.
 
 Definition intersection (P Q: set) := make_subset (fun s => P s /\ Q s).
 End mf_subsets.
-Notation "s \from P" := (mf_subset.P P s) (at level 70).
+Notation "s \from P" := ((P: mf_subset.type _) s) (at level 70).
 Notation "P === Q" := (set_equiv P Q) (at level 50).
 Notation "P '\is_subset_of' Q" := (subs P Q) (at level 50).
 Notation "P '\intersects' Q" := (intersects P Q) (at level 50).
@@ -98,7 +100,7 @@ Qed.
 
 Lemma sprd_All S T (P: mf_subset.type S) (Q: mf_subset.type T):
 	P === All /\ Q === All -> P \x Q === All.
-Proof. by move => [eq eq'] s; rewrite eq eq'. Qed.
+Proof. by move => [eq eq'] s /=; rewrite eq eq'. Qed.
 
 Lemma sprd_All_inv S T (P: mf_subset.type S) (Q: mf_subset.type T) somes somet:
 	P somes -> Q somet -> P \x Q === All -> P === All /\ Q === All.
