@@ -20,8 +20,11 @@ Definition make_mf S T (f: S -> T -> Prop) := mf.Pack (fun s => mf_subset.Pack (
 (* The following should be considered to define equality as multivalued functions *)
 Definition equiv S T (f g: S ->> T) := (forall s, f s === g s).
 
-Global Instance eqiuv_equiv S T:
-	Equivalence (@equiv S T).
+Definition mf_iff S T f g := forall (s: S) (t: T), f s t <-> g s t.
+Global Instance make_mf_prpr S T: Proper (@mf_iff S T ==> @equiv S T) (@make_mf S T).
+Proof. done. Qed.
+
+Global Instance eqiuv_equiv S T: Equivalence (@equiv S T).
 Proof.
 split => // [f g eq s t | f g h feg geh s t]; first by split => [gst | fst]; apply eq.
 by split => [fst | hst]; [apply geh; apply feg | apply feg; apply geh].
@@ -38,15 +41,16 @@ Definition F2MF S T (f : S -> T) : (S ->> T) := make_mf (fun s t => f s = t).
 Global Instance F2MF_prpr S T: Proper (@eqfun T S ==> @equiv S T) (@F2MF S T).
 Proof. by move => f g eq s t; rewrite /F2MF /= eq. Qed.
 
-Definition mf_inv T S (f: S ->> T) := make_mf (fun t s => f s t).
-Notation inv f := (mf_inv f).
-Notation "f '\inverse'" := (mf_inv f) (at level 50).
-Notation "f '\^-1'" := (mf_inv f) (format "f '\^-1'", at level 50).
+Definition inverse S T (f: S ->> T) := make_mf (fun t s => f s t).
+Notation inv f := (inverse f).
+Notation "f '\inverse'" := (inverse f) (at level 50).
+Notation "f '\^-1'" := (inverse f) (format "f '\^-1'", at level 50).
+Definition mf_inverse S T := F2MF (@inverse S T).
 
 Lemma inv_inv S T (f: S ->> T): (f\^-1)\^-1 =~= f.
 Proof. done. Qed.
 
-Global Instance inv_prpr S T: Proper ((@equiv S T) ==> (@equiv T S)) (@mf_inv T S).
+Global Instance inv_prpr S T: Proper ((@equiv S T) ==> (@equiv T S)) (@inverse S T).
 Proof. by move => f g eq s t; apply (eq t s). Qed.
 
 Definition inv_img S T (f: S ->> T) (P: mf_subset.type T) := make_subset (fun s => exists t, f s t /\ P t).
@@ -157,9 +161,9 @@ Lemma restr_all S T (f: S ->> T): f|_All =~= f.
 Proof. move => s t; by split => // [[]]. Qed.
 End Basics.
 Notation "f =~= g" := (equiv f g) (at level 70).
-Notation inv f := (mf_inv f).
-Notation "f '\inverse'" := (mf_inv f) (at level 70).
-Notation "f '\^-1'" := (mf_inv f) (format "f '\^-1'", at level 30).
+Notation inv f := (inverse f).
+Notation "f '\inverse'" := (inverse f) (at level 70).
+Notation "f '\^-1'" := (inverse f) (format "f '\^-1'", at level 30).
 Notation "f '\corestricted_to' P" := (corestr f P) (at level 2).
 Notation "f '|^' P" := (corestr f P) (format "f '|^' P", at level 2).
 Notation "f '\restricted_to' P" := (restr f P) (at level 2).

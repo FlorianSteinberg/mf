@@ -10,15 +10,15 @@ Section products.
 Context (S T S' T': Type).
 (* A modification of the following construction is used to define the product of represented spaces. *)
 
-Definition mf_fprd S T S' T' (f : S ->> T) (g : S' ->> T') :=
+Definition fprd_mf S T S' T' (f : S ->> T) (g : S' ->> T') :=
 	make_mf (fun s => (f s.1) \x (g s.2)).
-Notation "f '**' g" := (mf_fprd f g) (at level 50).
+Notation "f '**' g" := (fprd_mf f g) (at level 50).
 
 Global Instance fprd_prpr S T S' T':
-Proper ((@equiv S T) ==> (@equiv S' T') ==> (@equiv (S * S') (T * T'))) (@mf_fprd S T S' T').
+Proper ((@equiv S T) ==> (@equiv S' T') ==> (@equiv (S * S') (T * T'))) (@fprd_mf S T S' T').
 Proof.
 move => f f' eq g g' eq' r t.
-by rewrite /mf_fprd /= eq eq'.
+by rewrite /fprd_mf /= eq eq'.
 Qed.
 
 Definition fprd S T S' T' (f: S -> T) (g: S' -> T') := fun p => (f p.1, g p.2).
@@ -75,9 +75,9 @@ Proof. by rewrite !tot_spec fprd_dom => -> ->. Qed.
 Lemma tot_fprd (f: S ->> T) (g: S' ->> T') (s: S) (s': S'):
 	(f ** g) \is_total -> f \is_total /\ g \is_total.
 Proof.
-move => tot; have [[t t' [/= fst gs't']] ]:= tot (s, s').
+move => tot; have [[t t' [fst gs't']] ]:= tot (s, s').
 move/tot_spec: tot; rewrite fprd_dom => eq.
-by rewrite !tot_spec; apply/ (sprd_All_inv _ _ eq); [exists t; apply fst | exists t'; apply gs't'].
+rewrite !tot_spec; apply/ (sprd_All_inv _ _ eq); [exists t; apply fst | exists t'; apply gs't'].
 Qed.
 
 Lemma fprd_cotot (f: S ->> T) (g: S' ->> T'):
@@ -103,7 +103,7 @@ by rewrite fprd_dom => s []; split; [apply subs | apply subs'].
 Qed.
 
 Lemma fprd_tight (f: S ->> T) (g: S' ->> T') (f': S ->> T) (g': S' ->> T'):
-	f \tightens f' -> g \tightens g' -> (mf_fprd f g) \tightens (mf_fprd f' g').
+	f \tightens f' -> g \tightens g' -> (f ** g) \tightens (f' ** g').
 Proof.
 move => tight tight'; apply split_tight => [ | s dm t [fst gst]].
 	by rewrite !fprd_dom => s [dm dm']; split; apply/tight_dom; try apply/dm; try apply/dm'.
@@ -111,5 +111,5 @@ by move/fprd_dom: dm => [dm dm']; split; apply/tight_val; try apply /fst; try ap
 Qed.
 
 End products.
-Notation "f '**' g" := (mf_fprd f g) (at level 50).
+Notation "f '**' g" := (fprd_mf f g) (at level 50).
 Notation "f '**_f' g" := (fprd f g) (at level 50).

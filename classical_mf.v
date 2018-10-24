@@ -17,7 +17,7 @@ rewrite comp_F2MF comp_empty_r => q r /=.
 by split => // fsr; apply (all r).
 Qed.
 
-Lemma sing_tot_mono (f: S ->> T): (mf_inv f) \is_singlevalued -> f \is_total -> f \is_mono.
+Lemma sing_tot_mono (f: S ->> T): (f\^-1) \is_singlevalued -> f \is_total -> f \is_mono.
 Proof.
 move => sing tot R g h eq r s.
 have [t fst]:= tot s.

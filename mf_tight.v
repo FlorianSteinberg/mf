@@ -7,9 +7,20 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Definition tight S T (g f: S ->> T) := forall s, s \from dom g -> s \from dom f /\ forall t, f s t -> g s t.
+Definition exte S T (f g: S ->> T) := forall s, f s \is_subset_of g s.
+Notation "g '\extends' f" := (exte f g) (at level 50).
+Definition mf_exte S T := make_mf (@exte S T).
+Arguments mf_exte {S} {T}.
+
+Global Instance exte_prpr S T: Proper (@equiv S T ==> @equiv S T ==> iff) (@exte S T).
+Proof. by move => f f' feq g g' geq; split => exte s t gst; apply/geq/exte/feq. Qed.
+
+Definition tight S T (g f: S ->> T):=
+	forall s, s \from dom g -> s \from dom f /\ forall t, f s t -> g s t.
 Notation "f '\is_tightened_by' g" := (tight f g) (at level 2).
 Notation "g '\tightens' f" := (tight f g) (at level 2).
+Definition mf_tight S T:= make_mf (@tight S T).
+Arguments mf_tight {S} {T}.
 
 Global Instance tight_prpr S T:
 	Proper ((@equiv S T) ==> (@equiv S T) ==> iff) (@tight S T).
@@ -38,16 +49,25 @@ Lemma tight_val (f g: S ->> T) s:
 	f \tightens g -> s \from dom g -> (f s) \is_subset_of (g s).
 Proof. by move => tight sfd; have []:= tight s sfd. Qed.
 
+Lemma tight_spec (f g: S ->> T):
+	f \tightens g <-> dom g \is_subset_of dom f /\ g \extends f|_(dom g).
+Proof.
+split => [tight | [subs exte]]; last by apply/split_tight => // s sfd t' fst'; apply/exte.
+by split => [ | s t [sfd]]; [apply/tight_dom | apply/tight_val].
+Qed.
+
 Lemma tight_equiv (f g: S ->> T): f \tightens g -> g \tightens f -> f =~= g.
 Proof.
-move => tight tight' s t.
-split => [fst | gst].
+move => tight tight' s t; split => [fst | gst].
 	by apply /(tight_val tight); first by apply /(tight_dom tight'); exists t.
 by apply /(tight_val tight'); first by apply /(tight_dom tight); exists t.
 Qed.
 
-Definition exte S T (g f: S ->> T) := forall s, f s \is_subset_of g s.
-Notation "g '\extends' f" := (exte g f) (at level 50).
+Lemma exte_equiv (f g: S ->> T) : f =~= g <-> f \extends g /\ g \extends f.
+Proof.
+split => [eq | [gef feg] s t]; first by split => s t val; apply/eq.
+by split => ass; [apply/feg | apply/gef].
+Qed.
 
 Lemma exte_restr (f: S ->> T) P Q: P \is_subset_of Q -> f|_Q \extends f|_P.
 Proof. by move => subs s t []; split => //; apply subs. Qed.
@@ -74,6 +94,10 @@ rewrite (sing s t t') //.
 exact/tight_val/gst'.
 Qed.
 
+Lemma mf_tight_exte:
+	mf_exte|_(singlevalued S T) \extends mf_tight|_(singlevalued S T).
+Proof. by move => f [g] []; split; last apply/sing_tight_exte. Qed.
+
 Lemma exte_dom (f g: S ->> T):
 	g \extends f -> (dom f) \is_subset_of (dom g).
 Proof. by move => exte s [t fst]; exists t; apply exte. Qed.
@@ -86,6 +110,10 @@ apply split_tight => s [t]; first by exists t; apply exte.
 move => fst t' gst'; have gst := exte s t fst.
 by rewrite (gsing s t' t).
 Qed.
+
+Lemma mf_exte_tight:
+	mf_tight|^(singlevalued S T) \extends mf_exte|^(singlevalued S T).
+Proof. by move => f [g] []; split; last apply/sing_exte_tight. Qed.
 
 Lemma exte_tight (f: S ->> T) g:
 	f \is_singlevalued -> g \is_singlevalued -> (g \extends f <-> g \tightens f).
@@ -105,7 +133,7 @@ have [r' f't'r']:= prop.
 by exists r'; apply fef.
 Qed.
 
-Lemma tight_restr_w (f: S ->> T) P: f \tightens (f \restricted_to P).
+Lemma tight_restr_w (f: S ->> T) P: f \tightens (f|_P).
 Proof. by move => s [t [Ps fst]]; by split; first by exists t. Qed.
 
 Lemma tight_restr_r (f g: S ->> T) P Q:
@@ -119,7 +147,7 @@ by apply /tight_val /fst/dom_restr_subs/dm.
 Qed.
 
 Lemma tight_restr_l (f g: S ->> T) P Q:
-	P \is_subset_of Q -> (f \restricted_to P) \tightens g -> (f \restricted_to Q) \tightens g.
+	P \is_subset_of Q -> (f|_P) \tightens g -> (f|_Q) \tightens g.
 Proof.
 move => subs tight s [t gst].
 have [ | [t' [Ps fst'] prp]]:= tight s; first by exists t.
@@ -128,10 +156,8 @@ by apply prp.
 Qed.
 
 Lemma tight_restr (f: S ->> T) P Q:
-	P \is_subset_of Q -> (f \restricted_to Q) \tightens (f \restricted_to P).
-Proof.
-move => subs; apply /(tight_restr_l subs)/tight_ref.
-Qed.
+	P \is_subset_of Q -> (f|_Q) \tightens (f|_P).
+Proof. by move => subs; apply /(tight_restr_l subs)/tight_ref. Qed.
 
 Lemma tight_comp_r R (f: T ->> R) g (g': S ->> T):
 	g \tightens g' -> (f o g) \tightens (f o g').
@@ -232,7 +258,7 @@ by rewrite -comp_assoc; apply tight_comp_l.
 Qed.
 
 Lemma tight_comp_inv R S T (f: S ->> R) (g: T ->> R) (h: S ->> T):
-	h \is_surjective_partial_function -> f \tightens (g o h) <-> (f o (mf_inv h)) \tightens g.
+	h \is_surjective_partial_function -> f \tightens (g o h) <-> (f o (h\^-1)) \tightens g.
 Proof.
 move => [sing /cotot_spec eq]; split => tight; last exact/tight_inv_comp.
 rewrite -(restr_all g) -eq -comp_id_restr -sing_comp_inv // -comp_assoc.
@@ -244,10 +270,8 @@ Section choice_functions.
 Context (S T: Type).
 Definition icf S T (f: S ->> T) g := forall s t, f s t -> f s (g s).
 Notation "g '\is_choice_for' f" := (icf f g) (at level 2).
-(* A more comprehensible way to state icf would be "forall s, s \from_dom f -> f s (g s)"
-or "forall s, (exists t, f s t) -> f s (g s)" but avoiding the existential quatification
-makes the above more convenient to use. Assuming the axiom of choice, a choice function
-exists for any multivalued function (see "choice_mf.v"). *)
+Definition mf_icf S T:= make_mf (@icf S T).
+Arguments mf_icf {S} {T}.
 
 Lemma icf_F2MF_tight (g: S -> T) f:
 	g \is_choice_for f <-> (F2MF g) \tightens f.
@@ -261,7 +285,7 @@ Qed.
 Global Instance icf_prpr: Proper (@equiv S T ==> eq ==> iff) (@icf S T).
 Proof. by move => f g feg f' g' f'eg'; rewrite !icf_F2MF_tight feg f'eg'. Qed.
 
-Lemma id_icf_inv (f: S ->> T): id \is_choice_for ((mf_inv f) o f).
+Lemma id_icf_inv (f: S ->> T): id \is_choice_for ((f\^-1) o f).
 Proof. by move => s s' [[t [fst _]] _]; split; [exists t | exists s]. Qed.
 
 Lemma sing_tot_F2MF_icf (f: S ->> T) g:
@@ -290,5 +314,4 @@ Proof. by move => tight h icf; apply/icf_F2MF_tight/tight_trans/icf_F2MF_tight/i
 End choice_functions.
 Notation "f '\is_tightened_by' g" := (tight f g) (at level 2).
 Notation "g '\tightens' f" := (tight f g) (at level 2).
-Notation "g '\extends' f" := (exte g f) (at level 50).
 Notation "g '\is_choice_for' f" := (icf f g) (at level 2).

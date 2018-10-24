@@ -7,8 +7,8 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Section totals.
-Definition total S T (f: S ->> T) := (forall s, exists t, f s t).
-Notation "f \is_total" := (total f) (at level 30).
+Definition total S T := make_subset (fun (f: S ->> T) => (forall s, s \from dom f)).
+Notation "f \is_total" := (f \from (total _ _ )) (at level 30).
 
 Global Instance tot_prpr S T: Proper ((@equiv S T) ==> iff) (@total S T).
 Proof.
@@ -18,10 +18,7 @@ Qed.
 Context (S T S' T': Type).
 
 Lemma tot_spec Q Q' (f: Q ->> Q'): f \is_total <-> (dom f === All).
-Proof.
-split => prp s //=.
-by have /= -> := (prp s).
-Qed.
+Proof. by split => prp s; [have /=:= prp s | rewrite prp]. Qed.
 
 Lemma rcmp_tot_dom R (f: S ->> T) (g: T ->> R):
 	g \is_total -> (dom f) === (dom (g o_R f)).
@@ -68,8 +65,9 @@ move => /tot_spec tot s t; split => [ | comp]; first by case.
 by split => //; rewrite tot; exact/ subs_all.
 Qed.
 
-Definition cototal S T (f: S ->> T) := forall t, exists s, f s t.
-Notation "f '\is_cototal'" := (cototal f) (at level 30).
+Definition cototal S T:= make_subset (fun (f: S ->> T) =>
+	forall t, t \from codom f).
+Notation "f '\is_cototal'" := (f \from (cototal _ _)) (at level 30).
 
 Lemma cotot_spec (f: S ->> T): f \is_cototal <-> codom f === All.
 Proof. by split => ass s; first split => // _; apply/ass. Qed.
@@ -78,14 +76,15 @@ Lemma cotot_tot_inv (f: S ->> T):
 	f \is_cototal <-> (f \inverse) \is_total.
 Proof. by rewrite cotot_spec codom_dom_inv tot_spec. Qed.
 End totals.
-Notation "f '\is_total'" := (total f) (at level 2).
-Notation "f '\is_cototal'" := (cototal f) (at level 2).
+Notation "f '\is_total'" := (f \from (total _ _)) (at level 2).
+Notation "f '\is_cototal'" := (f \from (cototal _ _)) (at level 2).
 
 Section singlevalueds.
 Context (S T S' T': Type).
 (* For representations we should sieve out the single valued surjective partial functions. *)
-Definition singlevalued S T (f: S ->> T) := (forall s t t', f s t -> f s t' -> t = t').
-Notation "f '\is_singlevalued'" := (singlevalued f) (at level 2).
+Definition singlevalued S T := make_subset (fun (f: S ->> T) =>
+	forall s t t', f s t -> f s t' -> t = t').
+Notation "f '\is_singlevalued'" := (f \from (singlevalued _ _)) (at level 2).
 
 Global Instance sing_prpr S T: Proper ((@equiv S T) ==> iff) (@singlevalued S T).
 Proof. by split => sing s t t' fst fst'; apply /(sing s t t'); apply /H. Qed.
@@ -113,51 +112,33 @@ Lemma comp_cotot R (f: R ->> T) (g: S ->> R):
 	g \is_singlevalued -> f \is_cototal -> g \is_cototal -> (f o g) \is_cototal.
 Proof.
 move => sing fct gct t.
-have [r frt]:= fct t.
-have [s gsr]:= gct r.
-exists s.
-split; first by exists r.
-move => r' gsr'.
-rewrite (sing s r' r) => //.
-by exists t.
+have [r frt]:= fct t; have [s gsr]:= gct r.
+exists s; split => [ | r' gsr']; first by exists r.
+by rewrite (sing s r' r) => //; exists t.
 Qed.
 
 Lemma sing_inj_comp_inv R Q Q' (f: Q ->> Q') (g: R ->> Q):
 	g \is_singlevalued -> f\^-1 \is_singlevalued -> (f o g)\^-1 =~= (g\^-1) o (f\^-1).
-Proof.
-move => gsing finj.
-rewrite (sing_rcmp f gsing).
-rewrite (sing_rcmp (g\^-1) finj).
-exact/rcmp_inv.
-Qed.
+Proof. by move => gsing finj; rewrite !sing_rcmp //; apply/rcmp_inv. Qed.
 
 Lemma sing_comp_inv (f: S ->> T):
 	f \is_singlevalued -> f o (f\^-1) =~= mf_id|_(codom f).
 Proof.
-move => sing s t.
-split => [[[r [fsr ftr]] dm] | ].
-	split; first by exists r.
-	by apply /sing; first apply /fsr.
-move => [[t' fst'] <-].
-split; first by exists t'.
-by move => s'; exists s.
+move => sing.
+split => [[[r [frs frt]] dm] | [[t' fst'] <-]]; first by split; [exists r | apply /sing/frt].
+by split => [ | s']; [exists t' | exists s].
 Qed.
 
 Lemma mfinv_inj_sing (f: S -> T): injective f <-> (F2MF f)\^-1 \is_singlevalued.
-Proof.
-split => [inj s t t' eq eq' | sing s t eq]; first by apply inj; rewrite eq eq'.
-by apply /sing; first by apply /eq.
-Qed.
+Proof. by split => [inj s t t' eq eq' | sing s t eq]; [apply/inj; rewrite eq eq' | apply/sing]. Qed.
 
-Lemma restr_sing_w (f: S ->> T) P:
-	f \is_singlevalued -> (f \restricted_to P) \is_singlevalued.
+Lemma restr_sing_w (f: S ->> T) P: f \is_singlevalued -> (f \restricted_to P) \is_singlevalued.
 Proof. by move => sing s t t' [_ fst [_ fst']]; apply (sing s t t'). Qed.
 
 Lemma restr_sing (f: S ->> T) P Q:
 	P \is_subset_of Q -> (f \restricted_to Q) \is_singlevalued -> (f \restricted_to P) \is_singlevalued.
 Proof.
-move => subs sing s t t' [Ps fst [_ fst']].
-by apply /(sing s t t'); split => //; apply subs.
+by move => subs sing s t t' [Ps fst [_ fst']]; apply/sing; split; try apply/subs; try apply/fst.
 Qed.
 
 Lemma comp_sing (f: T ->> T') (g : S ->> T) :
@@ -183,15 +164,17 @@ split => [ | r gsr]; last by exists s0; apply/ (fgrt r).
 by have [r gsr] := tot s; by exists r; split; last by apply fgrt.
 Qed.
 End singlevalueds.
-Notation "f '\is_singlevalued'" := (singlevalued f) (at level 2).
+Notation "f '\is_singlevalued'" := (f \from (singlevalued _ _)) (at level 2).
 
 Section epi_mono.
 Context (S T S' T': Type).
 (* the following are taken from category theory. *)
-Definition mf_epi (f: S ->> T):= forall Q (g h: T ->> Q), g o f =~= h o f -> g =~= h.
-Notation "f '\is_epi'" := (mf_epi f) (at level 2).
-Definition mf_mono (f: S ->> T):= forall Q (g h: Q ->> S), f o g =~= f o h -> g =~= h.
-Notation "f '\is_mono'" := (mf_mono f) (at level 2).
+Definition epimorphism := make_subset (fun (f: S ->> T) =>
+	forall Q (g h: T ->> Q), g o f =~= h o f -> g =~= h).
+Notation "f '\is_epi'" := (epimorphism f) (at level 2).
+Definition monomorphism := make_subset (fun (f: S ->> T) =>
+	forall Q (g h: Q ->> S), f o g =~= f o h -> g =~= h).
+Notation "f '\is_mono'" := (monomorphism f) (at level 2).
 
 Lemma empty_not_mono (s: S): ~(@empty_mf S T) \is_mono.
 Proof.
@@ -222,12 +205,16 @@ Qed.
 
 (* Again Classically, the inverse is true for singlevalud functions (see classical_mf.v).
 Thus the following is named correctly. *)
-Definition sur_par_fun S T (f: S ->> T) :=
-  f \is_singlevalued /\ f \is_cototal.
+Definition surjective_partial_function := intersection (singlevalued S T) (cototal S T).
 
-Definition sur_fun (f: S -> T) := forall t, exists s, f s = t.
+Definition functions := make_subset (fun F => exists (f: S -> T), F2MF f = F).
+
+Lemma func_spec: functions === codom (F2MF (@F2MF S T)).
+Proof. done. Qed.
+
+Definition surjective_function := make_subset (fun (f: S -> T) => forall t, exists s, f s = t).
 End epi_mono.
-Notation "f '\is_mono'" := (mf_mono f) (at level 2).
-Notation "f '\is_epi'" := (mf_epi f) (at level 2).
-Notation "f '\is_surjective_partial_function'" := (sur_par_fun f) (at level 2).
-Notation "f '\is_surjective_function'" := (sur_fun f) (at level 2).
+Notation "f '\is_mono'" := (f \from (monomorphism _ _)) (at level 2).
+Notation "f '\is_epi'" := (f \from (epimorphism _ _)) (at level 2).
+Notation "f '\is_surjective_partial_function'" := (f \from (surjective_partial_function _ _)) (at level 2).
+Notation "f '\is_surjective_function'" := (f \from (surjective_function _ _)) (at level 2).
