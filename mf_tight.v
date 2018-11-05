@@ -1,6 +1,6 @@
 (* This file contains basic definitions and Lemmas about multi-valued functions *)
 From mathcomp Require Import all_ssreflect.
-Require Import mf_set mf_core mf_rcmp mf_comp mf_prop.
+Require Import mf_set mf_core mf_rcmp mf_comp mf_tot mf_sing.
 Import Morphisms.
 
 Set Implicit Arguments.
@@ -261,17 +261,15 @@ Lemma tight_comp_inv R S T (f: S ->> R) (g: T ->> R) (h: S ->> T):
 	h \is_surjective_partial_function -> f \tightens (g o h) <-> (f o (h\^-1)) \tightens g.
 Proof.
 move => [sing /cotot_spec eq]; split => tight; last exact/tight_inv_comp.
-rewrite -(restr_all g) -eq -comp_id_restr -sing_comp_inv // -comp_assoc.
+rewrite (restr_all g) -eq -comp_id_restr -sing_comp_inv // -comp_assoc.
 exact/tight_comp_l.
 Qed.
 End tight_comp.
 
 Section choice_functions.
 Context (S T: Type).
-Definition icf S T (f: S ->> T) g := forall s t, f s t -> f s (g s).
-Notation "g '\is_choice_for' f" := (icf f g) (at level 2).
-Definition mf_icf S T:= make_mf (@icf S T).
-Arguments mf_icf {S} {T}.
+Definition icf S T (g: S -> T) (f: S ->> T) := forall s t, f s t -> f s (g s).
+Notation "g '\is_choice_for' f" := (icf g f) (at level 2).
 
 Lemma icf_F2MF_tight (g: S -> T) f:
 	g \is_choice_for f <-> (F2MF g) \tightens f.
@@ -282,8 +280,11 @@ have ex: s \from dom f by exists t.
 by apply ((tight s ex).2 (g s)).
 Qed.
 
-Global Instance icf_prpr: Proper (@equiv S T ==> eq ==> iff) (@icf S T).
-Proof. by move => f g feg f' g' f'eg'; rewrite !icf_F2MF_tight feg f'eg'. Qed.
+Global Instance icf_prpr: Proper (@eqfun T S ==> @equiv S T ==> iff) (@icf S T).
+Proof.
+move => f f' fe g g' ge; rewrite !icf_F2MF_tight ge.
+by have ->: F2MF f =~= F2MF f' by move => s t /=; rewrite (fe s).
+Qed.
 
 Lemma id_icf_inv (f: S ->> T): id \is_choice_for ((f\^-1) o f).
 Proof. by move => s s' [[t [fst _]] _]; split; [exists t | exists s]. Qed.
@@ -314,4 +315,4 @@ Proof. by move => tight h icf; apply/icf_F2MF_tight/tight_trans/icf_F2MF_tight/i
 End choice_functions.
 Notation "f '\is_tightened_by' g" := (tight f g) (at level 2).
 Notation "g '\tightens' f" := (tight f g) (at level 2).
-Notation "g '\is_choice_for' f" := (icf f g) (at level 2).
+Notation "g '\is_choice_for' f" := (icf g f) (at level 2).

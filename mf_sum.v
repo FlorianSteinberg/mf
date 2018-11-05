@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import mf_set mf_core mf_comp mf_prop mf_tight mf_prod.
+Require Import mf_set mf_core mf_comp mf_tot mf_sing mf_tight mf_prod.
 Import Morphisms.
 
 Set Implicit Arguments.

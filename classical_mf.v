@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import mf_set mf_core mf_comp mf_prop.
+Require Import mf_set mf_core mf_comp mf_tot mf_sing.
 Require Import Classical.
 
 Section classical_mf.

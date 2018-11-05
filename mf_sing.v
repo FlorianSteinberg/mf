@@ -1,83 +1,19 @@
 From mathcomp Require Import all_ssreflect.
-Require Import mf_set mf_core mf_comp mf_rcmp.
+Require Import mf_set mf_core mf_comp mf_rcmp mf_tot.
 Import Morphisms.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Section totals.
-Definition total S T := make_subset (fun (f: S ->> T) => (forall s, s \from dom f)).
-Notation "f \is_total" := (f \from (total _ _ )) (at level 30).
+Section forces.
+Context (S T: Type).
+Definition forces (f: S ->> T) := make_mf (fun s t => forall t', f s t' -> t' = t).
 
-Global Instance tot_prpr S T: Proper ((@equiv S T) ==> iff) (@total S T).
-Proof.
-by move => f g eq; split => tot s; have [t]:= tot s; exists t; [rewrite -eq| rewrite eq].
-Qed.
+Global Instance frcs_prpr: Proper ((@equiv S T) ==> @equiv S T) (forces).
+Proof. by move => f g eq s t; split => frcs t'; [rewrite -eq | rewrite eq]; exact/frcs. Qed.
 
-Context (S T S' T': Type).
-
-Lemma tot_spec Q Q' (f: Q ->> Q'): f \is_total <-> (dom f === All).
-Proof. by split => prp s; [have /=:= prp s | rewrite prp]. Qed.
-
-Lemma rcmp_tot_dom R (f: S ->> T) (g: T ->> R):
-	g \is_total -> (dom f) === (dom (g o_R f)).
-Proof.
-move => tot s; split => [[t frt] | [r [t []]]]; last by exists t.
-by have[r gtr]:= tot t; exists r; exists t.
-Qed.
-
-Lemma comp_tot_dom R (f: S ->> T) (g: T ->> R):
-	g \is_total -> (dom f) === (dom (g o f)).
-Proof.
-move => /tot_spec tot.
-apply comp_dom_codom.
-rewrite tot; exact/subs_all.
-Qed.
-
-Lemma comp_tot R (f: S ->> T) (g: T ->> R):
-	f \is_total -> g \is_total -> (g o f) \is_total.
-Proof. by move => /tot_spec tot tot'; apply/tot_spec; rewrite -comp_tot_dom. Qed.
-
-Lemma rcmp_tot R (f: S ->> T) (g: T ->> R):
-	f \is_total -> g \is_total -> (g o_R f) \is_total.
-Proof. by move => /tot_spec tot tot'; apply/tot_spec; rewrite -rcmp_tot_dom. Qed.
-
-Lemma tot_subs_dom R (f: S ->> T) (g: S ->> T) (h: T ->> R):
-	codom g \is_subset_of dom h-> dom (h o g) \is_subset_of dom (h o f) -> dom g \is_subset_of dom f.
-Proof.
-move => tot dm s [t gst].
-have [ | r [[t' []]]]:= dm s; last by exists t'.
-have [ | r htr] //:= tot t; first by exists s.
-by exists r; split => [ | t' gst']; [exists t | apply tot; exists s].
-Qed.
-
-Lemma F2MF_tot (f: S -> T):
-	(F2MF f) \is_total.
-Proof. by move => s; exists (f s). Qed.
-
-(* For total multi valued functions, the relational composition is identical to the multi-
-function composition.  *)
-Lemma comp_rcmp R  (f : S ->> T) (g : R ->> S):
-	f \is_total -> f o g =~= f o_R g.
-Proof.
-move => /tot_spec tot s t; split => [ | comp]; first by case.
-by split => //; rewrite tot; exact/ subs_all.
-Qed.
-
-Definition cototal S T:= make_subset (fun (f: S ->> T) =>
-	forall t, t \from codom f).
-Notation "f '\is_cototal'" := (f \from (cototal _ _)) (at level 30).
-
-Lemma cotot_spec (f: S ->> T): f \is_cototal <-> codom f === All.
-Proof. by split => ass s; first split => // _; apply/ass. Qed.
-
-Lemma cotot_tot_inv (f: S ->> T):
-	f \is_cototal <-> (f \inverse) \is_total.
-Proof. by rewrite cotot_spec codom_dom_inv tot_spec. Qed.
-End totals.
-Notation "f '\is_total'" := (f \from (total _ _)) (at level 2).
-Notation "f '\is_cototal'" := (f \from (cototal _ _)) (at level 2).
+End forces.
 
 Section singlevalueds.
 Context (S T S' T': Type).
@@ -85,6 +21,16 @@ Context (S T S' T': Type).
 Definition singlevalued S T := make_subset (fun (f: S ->> T) =>
 	forall s t t', f s t -> f s t' -> t = t').
 Notation "f '\is_singlevalued'" := (f \from (singlevalued _ _)) (at level 2).
+
+Lemma sing_spec (f: S ->> T): f \is_singlevalued <->
+	(dom f) \is_subset_of dom (forces f).
+Proof.
+split => [sing s [t fst] | sing s t t' fst fst']; first by exists t => t' fst'; apply/sing/fst/fst'.
+by have [ | t'' det]:= sing s; [exists t | rewrite (det t) //(det t')].
+Qed.
+
+Lemma dom_frcs (f: S ->> T): f|_(dom (forces f)) \is_singlevalued.
+Proof. by move => s t t' [[t'' frcs] fst] [_ fst']; rewrite (frcs t) // (frcs t'). Qed.
 
 Global Instance sing_prpr S T: Proper ((@equiv S T) ==> iff) (@singlevalued S T).
 Proof. by split => sing s t t' fst fst'; apply /(sing s t t'); apply /H. Qed.
@@ -120,6 +66,9 @@ Qed.
 Lemma sing_inj_comp_inv R Q Q' (f: Q ->> Q') (g: R ->> Q):
 	g \is_singlevalued -> f\^-1 \is_singlevalued -> (f o g)\^-1 =~= (g\^-1) o (f\^-1).
 Proof. by move => gsing finj; rewrite !sing_rcmp //; apply/rcmp_inv. Qed.
+
+Lemma corestr_inv (f: S ->> T) P: (f|^P)\^-1 =~= f\^-1|_P.
+Proof. done. Qed.
 
 Lemma sing_comp_inv (f: S ->> T):
 	f \is_singlevalued -> f o (f\^-1) =~= mf_id|_(codom f).

@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import mf_set mf_core mf_comp mf_prop mf_tight.
+Require Import mf_set mf_core mf_comp mf_tot mf_sing mf_tight.
 Import Morphisms.
 Require Import ClassicalChoice.
 
@@ -9,12 +9,12 @@ Unset Printing Implicit Defensive.
 
 Section choice_mf.
 Context (S T: Type).
-Lemma exists_choice (f: S ->> T) (t: T):
-	exists F, F \is_choice_for f.
+Lemma exists_choice (F: S ->> T) (t: T):
+	exists f, f \is_choice_for F.
 Proof.
-set R := make_mf (fun s t => forall t', f s t' -> f s t).
-have [s | F tot]:= choice (mf.value R); last by exists F => s; apply /tot.
-case: (classic (s \from dom f)) => [[] t' fst | false]; first by exists t'.
+pose R s t := forall Fs, F s Fs -> F s t.
+have [s | f tot]:= choice R; last by exists f => s; apply /tot.
+case: (classic (s \from dom F)) => [[] t' fst | false]; first by exists t'.
 by exists t => t' fst'; exfalso; apply false; exists t'.
 Qed.
 

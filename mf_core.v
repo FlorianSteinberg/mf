@@ -115,10 +115,10 @@ Notation "f '|^' P" := (corestr f P) (format "f '|^' P", at level 2).
 Lemma corestr_crct S T (f: S ->> T) P s t: f|^P s t <-> P t /\ f s t.
 Proof. done. Qed.
 
-Lemma corestr_spec S T (f: S ->> T) P s: (f \corestricted_to P) s  === intersection P (f s).
+Lemma corestr_spec S T (f: S ->> T) P s: (f|^P) s  === intersection P (f s).
 Proof. done. Qed.
 
-Lemma corestr_id S T (f: S ->> T): f =~= (f \corestricted_to All).
+Lemma corestr_all S T (f: S ->> T): f =~= (f|^All).
 Proof. by move => s t; split => // [[]]. Qed.
 
 Global Instance corestr_prpr S T:
@@ -148,7 +148,7 @@ Lemma corestr_restr_inv S T (f: S ->> T) P: f|_P =~= ((f\^-1)|^P)\^-1.
 Lemma restr_crct S T (f: S ->> T) P s t: (f \restricted_to P) s t <-> P s /\ f s t.
 Proof. done. Qed.
 
-Lemma restr_id S T (f: S ->> T): f =~= (f \restricted_to All).
+Lemma restr_all S T (f: S ->> T): f =~= (f|_All).
 Proof. by move => s t; split => // [[]]. Qed.
 
 Global Instance restr_prpr S T: Proper (@equiv S T ==> @set_equiv S ==> @equiv S T) (@restr S T).
@@ -157,8 +157,8 @@ move => f g feqg P Q PeqQ s t.
 by split => [[Ps fst] | [Qs gst]]; split => //; try apply PeqQ; try apply feqg.
 Qed.
 
-Lemma restr_all S T (f: S ->> T): f|_All =~= f.
-Proof. move => s t; by split => // [[]]. Qed.
+Lemma restr_inv S T (f: S ->> T) P: (f|_P)\^-1 =~= (f\^-1)|^P.
+Proof. done. Qed.
 End Basics.
 Notation "f =~= g" := (equiv f g) (at level 70).
 Notation inv f := (inverse f).

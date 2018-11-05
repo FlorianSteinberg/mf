@@ -17,25 +17,23 @@ Notation subset S := (mf_subset.type S).
 
 Section mf_subsets.
 Context (S: Type).
-Notation set := (mf_subset.type S).
 
-Definition set_equiv (P Q: set) := forall s, P s <-> Q s.
+Definition set_equiv (P Q: subset S) := forall s, P s <-> Q s.
 Notation "P === Q" := (set_equiv P Q) (at level 50).
 
-Global Instance sqv_equiv:
-	Equivalence set_equiv.
+Global Instance sqv_equiv: Equivalence set_equiv.
 Proof.
 split => // [P Q eq s | P Q R eq eq' s]; first by split => [Ps | Qs]; apply (eq s).
 by split => [Ps | Rs]; [apply /eq' /eq | apply /eq /eq'].
 Qed.
 
-Notation "s \from P" := (mf_subset.P _ P s) (at level 70).
+Notation "s '\from' P" := (mf_subset.P _ P s) (at level 50).
 
 Global Instance from_prpr:
 	Proper (set_equiv ==> (@eq S) ==> iff) (@mf_subset.P S).
 Proof. by move => P Q eq s _ <-; apply eq. Qed.
 
-Definition subs (P Q : set) := forall s, P s -> Q s.
+Definition subs (P Q : subset S) := forall s, P s -> Q s.
 Notation "P '\is_subset_of' Q" := (subs P Q) (at level 50).
 
 Global Instance subs_prpr:
@@ -59,7 +57,7 @@ split => Ps; try apply subs => //.
 by apply subs'.
 Qed.
 
-Lemma split_set_eq (P Q: set): P \is_subset_of Q -> Q \is_subset_of P -> P === Q.
+Lemma split_set_eq (P Q: subset S): P \is_subset_of Q -> Q \is_subset_of P -> P === Q.
 Proof. by move => subs subs' s; split; [apply subs | apply subs']. Qed.
 
 Definition All := make_subset (fun (_: S) => True).
@@ -72,13 +70,13 @@ Definition empty := make_subset (fun (_: S) => False).
 Lemma subs_empty P : empty \is_subset_of P.
 Proof. done. Qed.
 
-Definition intersects (P Q: set) := exists s, P s /\ Q s.
+Definition intersects (P Q: subset S) := exists s, P s /\ Q s.
 Notation "P '\intersects' Q" := (intersects P Q) (at level 50).
 
 Lemma ntrsct_sym P Q: P \intersects Q <-> Q \intersects P.
 Proof. by split; move => [s []]; exists s. Qed.
 
-Definition intersection (P Q: set) := make_subset (fun s => P s /\ Q s).
+Definition intersection (P Q: subset S) := make_subset (fun s => P s /\ Q s).
 End mf_subsets.
 Notation "s \from P" := ((P: mf_subset.type _) s) (at level 70).
 Notation "P === Q" := (set_equiv P Q) (at level 50).

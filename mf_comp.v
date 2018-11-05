@@ -12,11 +12,11 @@ Section composition.
 The relational composition can be found in "mf_rcmp.v". The multi function composition
 adds an assumption that removes the symmetry of in- and output. The additional condition
 is that g r is a subset of dom f. *)
-Definition mf_comp R S T (f : S ->> T) (g : R ->> S) :=
+Definition composition R S T (f : S ->> T) (g : R ->> S) :=
 	make_mf (fun r t => (f o_R g) r t /\ (g r) \is_subset_of (dom f)).
-Notation "f 'o' g" := (mf_comp f g) (at level 50).
+Notation "f 'o' g" := (composition f g) (at level 50).
 
-Global Instance comp_prpr R S T: Proper ((@equiv S T) ==> (@equiv R S) ==> (@equiv R T)) (@mf_comp R S T).
+Global Instance comp_prpr R S T: Proper ((@equiv S T) ==> (@equiv R S) ==> (@equiv R T)) (@composition R S T).
 Proof.
 move => f f' eqf g g' eqg s t; split; case.
 	split; last by move => r g'sr; rewrite -eqf; apply/b/eqg.
@@ -109,11 +109,7 @@ Qed.
 
 Lemma comp_id_restr S T (f: S ->> T) P: f o mf_id|_P =~= f|_P.
 Proof.
-move => s t.
-split; first by move => [[_ [[Ps <-]]]].
-move => [ps fst].
-split; first by exists s.
-by move => t' [_ <-]; exists t.
+by move => s t; split => [[[_ [[Ps <-]]]] | []] //; split => [ | t' [_ <-]]; [exists s | exists t].
 Qed.
 
 Lemma comp_id_l S T (f: S ->> T):
@@ -134,4 +130,4 @@ Proof. by split => //=; move => [[a []]]. Qed.
 Lemma comp_empty_r S T R (f: S ->> T): f o (@empty_mf R S) =~= (@empty_mf R T).
 Proof. by split => //=; move => [[a []]]. Qed.
 End composition.
-Notation "f 'o' g" := (mf_comp f g) (at level 2).
+Notation "f 'o' g" := (composition f g) (at level 2).

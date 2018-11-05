@@ -3,7 +3,8 @@ mf_set.v
 mf_core.v
 mf_rcmp.v
 mf_comp.v
-mf_prop.v
+mf_tot.v
+mf_sing.v
 mf_tight.v
 mf_prod.v
 mf_sum.v
