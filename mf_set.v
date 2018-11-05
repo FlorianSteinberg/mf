@@ -14,6 +14,8 @@ End mf_subset.
 Coercion mf_subset.P: mf_subset.type >-> Funclass.
 Definition make_subset S (P: S -> Prop):= (mf_subset.Pack P).
 Notation subset S := (mf_subset.type S).
+Definition mf_sig S (P: subset S) := {s | P s}.
+Coercion mf_sig: mf_subset.type >-> Sortclass.
 
 Section mf_subsets.
 Context (S: Type).
@@ -77,11 +79,13 @@ Lemma ntrsct_sym P Q: P \intersects Q <-> Q \intersects P.
 Proof. by split; move => [s []]; exists s. Qed.
 
 Definition intersection (P Q: subset S) := make_subset (fun s => P s /\ Q s).
+Notation "P \n Q" := (intersection P Q) (at level 2).
 End mf_subsets.
 Notation "s \from P" := ((P: mf_subset.type _) s) (at level 70).
 Notation "P === Q" := (set_equiv P Q) (at level 50).
 Notation "P '\is_subset_of' Q" := (subs P Q) (at level 50).
 Notation "P '\intersects' Q" := (intersects P Q) (at level 50).
+Notation "P \n Q" := (intersection P Q) (at level 2).
 Arguments All {S}.
 
 Section products.
