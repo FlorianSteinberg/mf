@@ -4,13 +4,18 @@
 (* are only used in the appropriate places. The type is coerced into the      *)
 (* sigma types.                                                               *)
 (*                                                                            *)
-(*              subset S == The elements are functions S -> Prop.             *)
+(*       mf_subset.type S == The elements are functions S -> Prop.            *)
 (*                          Coerced both into these functions and into        *)
 (*                          the sigma types.                                  *)
+(*          make_subset  == Notation for the constructor mf_subset.Pack       *)
 (*           s \from A   == Elementhood relation. Notation for A s.           *)
 (*            A === B    == equality of sets, i.e. notation for               *)
 (*                          "s \from A <-> s \from B". The same as usual      *)
 (*                          if propositional extensionality is assumed.       *)
+(*             All       == constant function s => True where S is implicit.  *)
+(*            empty      == constant function s => False where S is implicit. *)
+(*          singleton s  == the singleton set containing only s, i.e.         *)
+(*                          t \from S <-> t = s.                              *)
 (*    A \is_subset_of B  == usual set inclusion, i.e.                         *)
 (*                          "s \from A -> s \from B"                          *)
 (*           A \n B      == set intersection                                  *)
@@ -88,6 +93,8 @@ Definition empty := make_subset (fun (_: S) => False).
 
 Lemma subs_empty P : empty \is_subset_of P.
 Proof. done. Qed.
+
+Definition singleton (s: S) := make_subset (fun t => t = s).
 
 Definition intersects (P Q: subset S) := exists s, P s /\ Q s.
 Notation "P '\intersects' Q" := (intersects P Q) (at level 50).
