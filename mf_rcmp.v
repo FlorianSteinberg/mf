@@ -1,6 +1,13 @@
-From mathcomp Require Import all_ssreflect.
+(******************************************************************************)
+(* This file introduces the relational composition and proves some basic      *)
+(* facts about it                                                             *)
+(*             f \o_R g     == relational composition of f and g, i.e. of     *)
+(*                             f: S ->> T and g: R ->> S, i.e. f \o_R g s r   *)
+(*                             <-> forall s, exists t, f s t /\ g t r         *)
+(******************************************************************************)
+From mathcomp Require Import ssreflect ssrfun.
 Require Import mf_set mf_core.
-Require Import CRelationClasses Morphisms.
+Require Import Morphisms.
  
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -52,7 +59,7 @@ Qed.
 Lemma rcmp_id_restr S T (f: S ->> T) P: f o_R mf_id|_P =~= f|_P.
 Proof.
 move => s t.
-split; first by move => [_ [[Ps <-] ]].
+split; first by move => [_ [[Ps/= <-] ]].
 by move => [ps fst]; exists s.
 Qed.
 
