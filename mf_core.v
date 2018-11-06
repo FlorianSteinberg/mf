@@ -4,7 +4,7 @@
 (* is how they are composed, the composition for multivalued functions is     *)
 (* Chosen such that it works well with realizability.                         *)
 (*                                                                            *)
-(*              mf S T   == The elements are functions S -> subset T.         *)
+(*            S ->> T    == The elements are functions S -> subset T.         *)
 (*                          Coerced into the functions of type S -> T -> Prop *)
 (*            make_mf    == Notation for the constructor mf.Pack.             *)
 (*            f =~= g    == equality of multivalued functions, i.e.           *)
