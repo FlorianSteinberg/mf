@@ -1,6 +1,23 @@
-(* This file contains basic definitions and Lemmas about multi-valued functions *)
-From mathcomp Require Import all_ssreflect.
-Import Morphisms.
+(******************************************************************************)
+(* This file provides a wrapper for functions of type S -> Prop which are     *)
+(* interpreted as subsets of S. The wrapper is to allow nice notations that   *)
+(* are only used in the appropriate places. The type is coerced into the      *)
+(* sigma types.                                                               *)
+(*                                                                            *)
+(*              subset S == The elements are functions S -> Prop.             *)
+(*                          Coerced both into these functions and into        *)
+(*                          the sigma types.                                  *)
+(*           s \from A   == Elementhood relation. Notation for A s.           *)
+(*            A === B    == equality of sets, i.e. notation for               *)
+(*                          "s \from A <-> s \from B". The same as usual      *)
+(*                          if propositional extensionality is assumed.       *)
+(*    A \is_subset_of B  == usual set inclusion, i.e.                         *)
+(*                          "s \from A -> s \from B"                          *)
+(*           A \n B      == set intersection                                  *)
+(*           A \x B      == carthesian product of sets                        *)
+(******************************************************************************)
+From mathcomp Require Import ssreflect ssrfun.
+Require Import Morphisms Setoid.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -29,7 +46,7 @@ split => // [P Q eq s | P Q R eq eq' s]; first by split => [Ps | Qs]; apply (eq 
 by split => [Ps | Rs]; [apply /eq' /eq | apply /eq /eq'].
 Qed.
 
-Notation "s '\from' P" := (mf_subset.P _ P s) (at level 50).
+Notation "s '\from' P" := (P s) (at level 50).
 
 Global Instance from_prpr:
 	Proper (set_equiv ==> (@eq S) ==> iff) (@mf_subset.P S).
