@@ -94,7 +94,7 @@ Definition empty := make_subset (fun (_: S) => False).
 Lemma subs_empty P : empty \is_subset_of P.
 Proof. done. Qed.
 
-Definition singleton (s: S) := make_subset (fun t => t = s).
+Definition singleton (s: S) := make_subset (fun t => s = t).
 
 Definition intersects (P Q: subset S) := exists s, P s /\ Q s.
 Notation "P '\intersects' Q" := (intersects P Q) (at level 50).
