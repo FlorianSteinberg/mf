@@ -1,7 +1,30 @@
-(* This file contains basic definitions and Lemmas about multi-valued functions *)
-From mathcomp Require Import all_ssreflect.
+(******************************************************************************)
+(* This file provides a class of relations interpreted as multivalued         *)
+(* functions. The main difference between relations and multivalued functions *)
+(* is how they are composed, the composition for multivalued functions is     *)
+(* Chosen such that it works well with realizability.                         *)
+(*                                                                            *)
+(*              mf S T   == The elements are functions S -> subset T.         *)
+(*                          Coerced into the functions of type S -> T -> Prop *)
+(*            make_mf    == Notation for the constructor mf.Pack.             *)
+(*            f =~= g    == equality of multivalued functions, i.e.           *)
+(*                          "forall s, f s === g s" or                        *)
+(*                          "forall s t, f s t <-> g s t"                     *)
+(*             F2MF      == "function to multifunction" sends a function      *)
+(*                          f: S -> T to the multifunction s => singleton f s *)
+(*                          i.e. F2MF f s t <-> f s = t                       *)
+(*            f\^-1      == inverse multifunction, i.e. f s t <-> f\^-1 t s   *)
+(*            dom f      == set of elements s such that f s is not empty.     *)
+(*           codom f     == dom f\^-1                                         *)
+(*             mf_id     == F2MF id i.e. mf_id s === singleton s              *)
+(*           empty_mf    == constant function returning the empty set.        *)
+(*             f|_A      == restriction of f to the subset A, i.e.            *)
+(*                          "f|_A s = if s \from A then f s else empty"       *)
+(*             f|^A      == corestriction, i.e. "f|^A = (f\^-1|_A)\^-1"       *)
+(******************************************************************************)
+From mathcomp Require Import ssreflect ssrfun.
 Require Import mf_set.
-Require Import CRelationClasses Morphisms.
+Require Import Morphisms.
  
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -36,8 +59,11 @@ Global Instance value_prpr S T:
 Proof. by move => P Q eq s _ <-; apply eq. Qed.
 
 Section Basics.
-Definition F2MF S T (f : S -> T) : (S ->> T) := make_mf (fun s t => f s = t).
-(* I'd like this to be a Coercion but it won't allow me to do so. *)
+Definition F2MF S T (f : S -> T) : (S ->> T) := make_mf (fun s => singleton (f s)).
+
+Lemma F2MF_spec S T (f: S -> T) s t: F2MF f s t <-> f s = t.
+Proof. done. Qed.
+
 Global Instance F2MF_prpr S T: Proper (@eqfun T S ==> @equiv S T) (@F2MF S T).
 Proof. by move => f g eq s t; rewrite /F2MF /= eq. Qed.
 
@@ -89,7 +115,7 @@ Proof. done. Qed.
 
 Lemma inv_dom_codom S T (f: S ->> T) t:
 	t \from codom f <-> t \from dom (f\^-1).
-Proof. exact/ codom_dom_inv. Qed.
+Proof. exact/codom_dom_inv. Qed.
 
 Global Instance codom_prpr S T: Proper ((@equiv S T) ==> (@set_equiv T)) (@codom S T).
 Proof. by move => f g eq; rewrite !codom_dom_inv eq. Qed.
@@ -98,14 +124,12 @@ Definition mf_id S:= F2MF (@id S).
 
 Arguments mf_id {S}.
 
-Lemma id_inv S:
-	mf_id\^-1 =~=@mf_id S.
+Lemma id_inv S: mf_id\^-1 =~=@mf_id S.
 Proof. done. Qed.
 
-Definition empty_mf S T := make_mf (fun (s: S) (t: T) => False).
+Definition empty_mf S T := make_mf (fun (s: S) => @empty T).
 
-Lemma empty_inv S T:
-	(@empty_mf S T) \inverse =~= (@empty_mf T S).
+Lemma empty_inv S T: (@empty_mf S T) \inverse =~= (@empty_mf T S).
 Proof. done. Qed.
 
 Definition corestr S T (f: S ->> T) (P: mf_subset.type T) := make_mf (fun s t => P t /\ f s t).
@@ -144,6 +168,7 @@ Lemma dom_restr_subs S T (f: S ->> T) P Q:
 Proof. by move => subs s [t [fst Pt]]; exists t; split; first apply/subs. Qed.
 
 Lemma corestr_restr_inv S T (f: S ->> T) P: f|_P =~= ((f\^-1)|^P)\^-1.
+Proof. done. Qed.
 
 Lemma restr_crct S T (f: S ->> T) P s t: (f \restricted_to P) s t <-> P s /\ f s t.
 Proof. done. Qed.
