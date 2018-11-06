@@ -1,10 +1,1 @@
-Require Export mf_set.
-Require Export mf_core.
-Require Export mf_rcmp.
-Require Export mf_comp.
-Require Export mf_tot.
-Require Export mf_sing.
-Require Export mf_tight.
-Require Export mf_prod.
-Require Export mf_sum.
-Require Export mf_func.
+Require Export mf_set mf.

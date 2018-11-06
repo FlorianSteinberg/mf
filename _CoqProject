@@ -1,11 +1,6 @@
 -R . mpf
 mf_set.v
 mf.v
-mf_sing.v
-mf_tight.v
-mf_prod.v
-mf_sum.v
-mf_func.v
 all_mpf.v
 classical_mf.v
 choice_mf.v

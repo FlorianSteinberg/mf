@@ -27,16 +27,34 @@
 (*             f|^A      == corestriction, i.e. "f|^A = (f\^-1|_A)\^-1"       *)
 (*           f \o_R g    == relational composition of f and g, i.e. of        *)
 (*                          f: S ->> T and g: R ->> S, i.e. f \o_R g s r      *)
-(*                          <-> forall s, exists t, f s t /\ g t r            *)
+(*                          <-> forall s, f s intersects g\^-1 r              *)
 (*            f \o g     == The composition of multivalued functions          *)
 (*                          i.e. if f: S ->> T and g: R ->> S, then           *)
 (*                          f \o g : R ->> T and f \o g r t <->               *)
 (*                          f s \is_subset_of dom g /\ f \o_R g r t           *)
-(*        f \is_total    == forall s, s \from dom f or dom f === All          *)
-(*                          f: S ->> T and g: R ->> S, i.e. f \o_R g s r      *)
-(*                          <-> forall s, exists t, f s t /\ g t r            *)
+(*        f \is_total    == "forall s, s \from dom f" or "dom f === All"      *)
 (*      f \is_cototoal   == forall s, s \from codom f equivalent to           *)
 (*                          surjectivity when f comes from a function.        *)
+(*    f \is_singlevalued == "forall s t t', f s t -> f s t' -> t = t'"        *)
+(*                          i.e. fs is a singleton or empty (classically)     *)
+(*      f \extends g     == subset inclusion in the sense of relations        *)
+(*                          for functions this reduces to the usual notion    *)
+(*                          of extensions, however for multivalued functions  *)
+(*                          the next is the better generaliztaion             *)
+(*      f \tightens g    == f has a bigger domain but less values when        *)
+(*                          restricted to the domain of g. Interpreted as a   *)
+(*                          computational task, this means that g is easier   *)
+(*                          to solve.                                         *)
+(*   f \is_choice_for g  == equivalent to (F2MF f) \tightens g. It means that *)
+(*                          f selects trough g, i.e. f(s) \from g s whenever  *)
+(*                          the latter is non-empty.                          *)
+(*           f ** g      == is the product "f ** g (s, t) === f s \x g t"     *)
+(*                          its function version **_f is given by             *)
+(*                          "f **_f g (s, t) = (f(s), g(t))" and satisfies    *)
+(*                          "(F2MF f) ** (F2MF g) =~= F2MF (f **_f g)".       *)
+(*           f +s+ g     == same as above with sums.                          *)
+(* Some other standardfunctions are given shortcuts like mf_id to avoid lots  *)
+(* of bracketing.                                                             *)
 (******************************************************************************)
 From mathcomp Require Import ssreflect ssrfun.
 Require Import mf_set.
@@ -465,3 +483,716 @@ Proof. by rewrite cotot_spec codom_dom_inv tot_spec. Qed.
 End totals.
 Notation "f '\is_total'" := (f \from (total _ _)) (at level 2).
 Notation "f '\is_cototal'" := (f \from (cototal _ _)) (at level 2).
+
+Section forces.
+Context (S T: Type).
+Definition forces (f: S ->> T) := make_mf (fun s t => forall t', f s t' -> t' = t).
+
+Global Instance frcs_prpr: Proper ((@equiv S T) ==> @equiv S T) (forces).
+Proof. by move => f g eq s t; split => frcs t'; [rewrite -eq | rewrite eq]; exact/frcs. Qed.
+
+End forces.
+
+Section singlevalueds.
+Context (S T S' T': Type).
+(* For representations we should sieve out the single valued surjective partial functions. *)
+Definition singlevalued S T := make_subset (fun (f: S ->> T) =>
+	forall s t t', f s t -> f s t' -> t = t').
+Notation "f '\is_singlevalued'" := (f \from (singlevalued _ _)) (at level 2).
+
+Lemma sing_spec (f: S ->> T): f \is_singlevalued <-> (dom f) \is_subset_of dom (forces f).
+Proof.
+split => [sing s [t fst] | sing s t t' fst fst']; first by exists t => t' fst'; apply/sing/fst/fst'.
+by have [ | t'' det]:= sing s; [exists t | rewrite (det t) //(det t')].
+Qed.
+
+Lemma dom_frcs (f: S ->> T): f|_(dom (forces f)) \is_singlevalued.
+Proof. by move => s t t' [[t'' frcs] fst] [_ fst']; rewrite (frcs t) // (frcs t'). Qed.
+
+Global Instance sing_prpr S T: Proper ((@equiv S T) ==> iff) (@singlevalued S T).
+Proof. by split => sing s t t' fst fst'; apply /(sing s t t'); apply /H. Qed.
+
+Lemma empty_sing: (@empty_mf S T) \is_singlevalued.
+Proof. done. Qed.
+
+Lemma F2MF_sing (f: S-> T): (F2MF f) \is_singlevalued.
+Proof. by move => s t t' H H0; rewrite -H0. Qed.
+
+Lemma sing_rcmp R Q Q' (f: Q ->> Q') (g: R ->> Q):
+	g \is_singlevalued -> f \o g =~= f \o_R g.
+Proof.
+move => sing s r.
+split => [ | [t [gst ftr]]]; first by case.
+split => [ | t' gst']; first by exists t.
+by rewrite (sing s t' t) => //; exists r.
+Qed.
+
+Lemma rcmp_cotot R (f: R ->> T) (g: S ->> R):
+	f \is_cototal -> g \is_cototal -> (f \o_R g) \is_cototal.
+Proof. by move => fct gct t; have [r frt]:= fct t; have [s gsr]:= gct r; exists s; exists r. Qed.
+
+Lemma comp_cotot R (f: R ->> T) (g: S ->> R):
+	g \is_singlevalued -> f \is_cototal -> g \is_cototal -> (f \o g) \is_cototal.
+Proof.
+move => sing fct gct t.
+have [r frt]:= fct t; have [s gsr]:= gct r.
+exists s; split => [ | r' gsr']; first by exists r.
+by rewrite (sing s r' r) => //; exists t.
+Qed.
+
+Lemma sing_inj_comp_inv R Q Q' (f: Q ->> Q') (g: R ->> Q):
+	g \is_singlevalued -> f\^-1 \is_singlevalued -> (f \o g)\^-1 =~= (g\^-1) \o (f\^-1).
+Proof. by move => gsing finj; rewrite !sing_rcmp //; apply/rcmp_inv. Qed.
+
+Lemma corestr_inv (f: S ->> T) P: (f|^P)\^-1 =~= f\^-1|_P.
+Proof. done. Qed.
+
+Lemma sing_comp_inv (f: S ->> T):
+	f \is_singlevalued -> f \o (f\^-1) =~= mf_id|_(codom f).
+Proof.
+move => sing.
+split => [[[r [frs frt]] dm] | [[t' fst'] <-]]; first by split; [exists r | apply /sing/frt].
+by split => [ | s']; [exists t' | exists s].
+Qed.
+
+Lemma mfinv_inj_sing (f: S -> T): injective f <-> (F2MF f)\^-1 \is_singlevalued.
+Proof. by split => [inj s t t' eq eq' | sing s t eq]; [apply/inj; rewrite eq eq' | apply/sing]. Qed.
+
+Lemma restr_sing_w (f: S ->> T) P: f \is_singlevalued -> (f \restricted_to P) \is_singlevalued.
+Proof. by move => sing s t t' [_ fst [_ fst']]; apply (sing s t t'). Qed.
+
+Lemma restr_sing (f: S ->> T) P Q:
+	P \is_subset_of Q -> (f \restricted_to Q) \is_singlevalued -> (f \restricted_to P) \is_singlevalued.
+Proof.
+by move => subs sing s t t' [Ps fst [_ fst']]; apply/sing; split; try apply/subs; try apply/fst.
+Qed.
+
+Lemma comp_sing (f: T ->> T') (g : S ->> T) :
+	f \is_singlevalued -> g \is_singlevalued -> (f \o g) \is_singlevalued.
+Proof.
+move => fsing gsing r t t' [[] s [] grs fst _ [][] s' [] grs' fs't' _].
+by rewrite (fsing s t t') => //; rewrite (gsing r s s').
+Qed.
+
+Lemma rcmp_sing (f: T ->> T') (g : S ->> T) :
+	f \is_singlevalued -> g \is_singlevalued -> (f \o_R g) \is_singlevalued.
+Proof.
+move => fsing gsing r t t' [s [grs fst]] [s' [grs' fs't]].
+by rewrite (fsing s t t') => //; rewrite (gsing r s s').
+Qed.
+
+Lemma sing_comp R (f : S ->> T) (g : R ->> S):
+	g \is_singlevalued -> g \is_total -> f \o g =~= make_mf (fun r t => forall y, g r y -> f y t).
+Proof.
+move => sing tot.
+split => [[[r [grs fst]] prop] y gsy | fgrt ]; first by rewrite (sing s y r).
+split => [ | r gsr]; last by exists s0; apply/ (fgrt r).
+by have [r gsr] := tot s; by exists r; split; last by apply fgrt.
+Qed.
+End singlevalueds.
+Notation "f '\is_singlevalued'" := (f \from (singlevalued _ _)) (at level 2).
+
+Section epi_mono.
+Context (S T S' T': Type).
+(* the following are taken from category theory. *)
+Definition epimorphism := make_subset (fun (f: S ->> T) =>
+	forall Q (g h: T ->> Q), g \o f =~= h \o f -> g =~= h).
+Notation "f '\is_epi'" := (epimorphism f) (at level 2).
+Definition monomorphism := make_subset (fun (f: S ->> T) =>
+	forall Q (g h: Q ->> S), f \o g =~= f \o h -> g =~= h).
+Notation "f '\is_mono'" := (monomorphism f) (at level 2).
+
+Lemma empty_not_mono (s: S): ~(@empty_mf S T) \is_mono.
+Proof.
+move => inj.
+pose g := F2MF (fun (b: bool) => s).
+pose h := @empty_mf bool S.
+suff eq: g =~= h by have /=<-:= eq true s.
+apply inj.
+by rewrite !comp_empty_l.
+Qed.
+
+(* Classically, being surjective implies being cototal (see file classical_mf.v).
+The opposite implication does not hold in general *)
+Lemma cotot_notepi (f: S ->> T) (s: S) (t t': T):
+	~ t = t' -> exists f, f \is_cototal /\ ~ f \is_epi.
+Proof.
+move => neq.
+pose f' := @make_mf S T (fun s t => True).
+exists f'; split => [ | sur ]; first by exists s.
+pose g := make_mf (fun k b => k = t /\ b = true).
+pose h := make_mf (fun k b => k = t /\ b = false).
+suffices eq: g \o f' =~= h \o f'.
+	have [a b]:= (((sur bool g h) eq) t false).
+	by suffices htt: h t false by move: (b htt).2.
+by split; move => [ [] _ [] _ [] _ _ prop];
+	by have [ | b' [eq]]:= (prop t' _); last by exfalso; apply neq.
+Qed.
+
+(* Again Classically, the inverse is true for singlevalud functions (see classical_mf.v).
+Thus the following is named correctly. *)
+Definition surjective_partial_function := intersection (singlevalued S T) (cototal S T).
+
+Definition functions := make_subset (fun F => exists (f: S -> T), F2MF f = F).
+
+Lemma func_spec: functions === codom (F2MF (@F2MF S T)).
+Proof. done. Qed.
+
+Definition surjective_function := make_subset (fun (f: S -> T) => forall t, exists s, f s = t).
+End epi_mono.
+Notation "f '\is_mono'" := (f \from (monomorphism _ _)) (at level 2).
+Notation "f '\is_epi'" := (f \from (epimorphism _ _)) (at level 2).
+Notation "f '\is_surjective_partial_function'" := (f \from (surjective_partial_function _ _)) (at level 2).
+Notation "f '\is_surjective_function'" := (f \from (surjective_function _ _)) (at level 2).
+
+Definition exte S T (f g: S ->> T) := forall s, f s \is_subset_of g s.
+Notation "g '\extends' f" := (exte f g) (at level 50).
+Definition mf_exte S T := make_mf (@exte S T).
+Arguments mf_exte {S} {T}.
+
+Global Instance exte_prpr S T: Proper (@equiv S T ==> @equiv S T ==> iff) (@exte S T).
+Proof. by move => f f' feq g g' geq; split => exte s t gst; apply/geq/exte/feq. Qed.
+
+Definition tight S T (g f: S ->> T):=
+	forall s, s \from dom g -> s \from dom f /\ forall t, f s t -> g s t.
+Notation "f '\is_tightened_by' g" := (tight f g) (at level 2).
+Notation "g '\tightens' f" := (tight f g) (at level 2).
+Definition mf_tight S T:= make_mf (@tight S T).
+Arguments mf_tight {S} {T}.
+
+Global Instance tight_prpr S T:
+	Proper ((@equiv S T) ==> (@equiv S T) ==> iff) (@tight S T).
+Proof.
+move => f f' eqf g g' eqg.
+split => tight s sfd; split => [ | t gst].
+			by rewrite -eqg; have [ | fd prp]:= tight s; first by rewrite eqf.
+		by have [ | fd prp]:= tight s; [rewrite eqf| rewrite -(eqf s t); apply prp; rewrite (eqg s t)].
+	by rewrite eqg; have [ | fd prp]:= tight s; first by rewrite -eqf.
+by have [ | fd prp]:= tight s; [rewrite -eqf| rewrite (eqf s t); apply prp; rewrite -(eqg s t)].
+Qed.
+
+Section tight.
+Context (S T: Type).
+
+Lemma split_tight (f g: S ->> T):
+	(dom g) \is_subset_of (dom f) -> (forall s, s \from dom g -> (f s) \is_subset_of (g s)) ->
+		f \tightens g.
+Proof. by move => dm val; split; [apply/dm | apply/val]. Qed.
+
+Lemma tight_dom (f g: S ->> T):
+	f \tightens g -> (dom g) \is_subset_of (dom f).
+Proof. by move => tight s sfd; have []:= tight s sfd. Qed.
+
+Lemma tight_val (f g: S ->> T) s:
+	f \tightens g -> s \from dom g -> (f s) \is_subset_of (g s).
+Proof. by move => tight sfd; have []:= tight s sfd. Qed.
+
+Lemma tight_spec (f g: S ->> T):
+	f \tightens g <-> dom g \is_subset_of dom f /\ g \extends f|_(dom g).
+Proof.
+split => [tight | [subs exte]]; last by apply/split_tight => // s sfd t' fst'; apply/exte.
+by split => [ | s t [sfd]]; [apply/tight_dom | apply/tight_val].
+Qed.
+
+Lemma tight_equiv (f g: S ->> T): f \tightens g -> g \tightens f -> f =~= g.
+Proof.
+move => tight tight' s t; split => [fst | gst].
+	by apply /(tight_val tight); first by apply /(tight_dom tight'); exists t.
+by apply /(tight_val tight'); first by apply /(tight_dom tight); exists t.
+Qed.
+
+Lemma exte_equiv (f g: S ->> T) : f =~= g <-> f \extends g /\ g \extends f.
+Proof.
+split => [eq | [gef feg] s t]; first by split => s t val; apply/eq.
+by split => ass; [apply/feg | apply/gef].
+Qed.
+
+Lemma exte_restr (f: S ->> T) P Q: P \is_subset_of Q -> f|_Q \extends f|_P.
+Proof. by move => subs s t []; split => //; apply subs. Qed.
+
+(* tight is almost an equivalence relation, it only fails to be symmetric *)
+Global Instance tight_ref: Reflexive (@tight S T).
+Proof. done. Qed.
+
+Global Instance tight_trans:
+	Transitive (@tight S T).
+Proof.
+move => f g h tight tight'.
+apply /split_tight => [ | s sfd]; first exact/subs_trans/tight_dom/tight'/tight_dom.
+exact/subs_trans/tight_val/sfd/tight/tight_val/tight_dom/sfd.
+Qed.
+
+Lemma sing_tight_exte (f: S ->> T) g:
+	f \is_singlevalued -> g \tightens f -> g \extends f.
+Proof.
+move => sing tight s t fst.
+have sfd: s \from dom f by exists t.
+have [t' gst']:= tight_dom tight sfd.
+rewrite (sing s t t') //.
+exact/tight_val/gst'.
+Qed.
+
+Lemma mf_tight_exte:
+	mf_exte|_(singlevalued S T) \extends mf_tight|_(singlevalued S T).
+Proof. by move => f [g] []; split; last apply/sing_tight_exte. Qed.
+
+Lemma exte_dom (f g: S ->> T):
+	g \extends f -> (dom f) \is_subset_of (dom g).
+Proof. by move => exte s [t fst]; exists t; apply exte. Qed.
+
+Lemma sing_exte_tight (f: S ->> T) g:
+	g \is_singlevalued -> g \extends f -> g \tightens f.
+Proof.
+move => gsing exte.
+apply split_tight => s [t]; first by exists t; apply exte.
+move => fst t' gst'; have gst := exte s t fst.
+by rewrite (gsing s t' t).
+Qed.
+
+Lemma mf_exte_tight:
+	mf_tight|^(singlevalued S T) \extends mf_exte|^(singlevalued S T).
+Proof. by move => f [g] []; split; last apply/sing_exte_tight. Qed.
+
+Lemma exte_tight (f: S ->> T) g:
+	f \is_singlevalued -> g \is_singlevalued -> (g \extends f <-> g \tightens f).
+Proof. split; [exact: sing_exte_tight | exact: sing_tight_exte] . Qed.
+
+Lemma exte_sing (f: S ->> T) (g: S ->> T):
+	f \extends g -> f \is_singlevalued -> g \is_singlevalued.
+Proof. move => exte sing s t t' gst gst'; apply /sing; apply exte; [apply gst | apply gst']. Qed.
+
+Lemma exte_comp R (f f': T ->> R) (g: S ->> T):
+	f \extends f' -> (f \o g) \extends (f' \o g).
+Proof.
+move => fef s r [[t [gst ftr] prop]].
+split => [ | t' gst']; first by exists t; split => //; apply fef.
+specialize (prop t' gst').
+have [r' f't'r']:= prop.
+by exists r'; apply fef.
+Qed.
+
+Lemma tight_restr_w (f: S ->> T) P: f \tightens (f|_P).
+Proof. by move => s [t [Ps fst]]; by split; first by exists t. Qed.
+
+Lemma tight_restr_r (f g: S ->> T) P Q:
+	P \is_subset_of Q -> f \tightens (g|_Q) -> f \tightens (g|_P).
+Proof.
+move => subs tight s dm.
+split => [ | t fst /=]; first by apply/tight_dom; first exact/tight; first exact/dom_restr_subs/dm.
+split; first by move: dm => [t' /= []].
+suff: g|_Q s t by rewrite /= => [[]].
+by apply /tight_val /fst/dom_restr_subs/dm.
+Qed.
+
+Lemma tight_restr_l (f g: S ->> T) P Q:
+	P \is_subset_of Q -> (f|_P) \tightens g -> (f|_Q) \tightens g.
+Proof.
+move => subs tight s [t gst].
+have [ | [t' [Ps fst'] prp]]:= tight s; first by exists t.
+split => [ | t'' [Qs fst'']]; first by exists t'; split; try apply subs.
+by apply prp.
+Qed.
+
+Lemma tight_restr (f: S ->> T) P Q:
+	P \is_subset_of Q -> (f|_Q) \tightens (f|_P).
+Proof. by move => subs; apply /(tight_restr_l subs)/tight_ref. Qed.
+
+Lemma tight_comp_r R (f: T ->> R) g (g': S ->> T):
+	g \tightens g' -> (f \o g) \tightens (f \o g').
+Proof.
+move => gtg' s [r [[t [g'st ftr]] prop]].
+have sfd: s \from dom g' by exists t.
+have [t' gst']:= (gtg' s sfd).1.
+have g'st': g' s t' by apply (gtg' s sfd).2.
+move: (prop t' g'st') => [r' fgsr'].
+split; first exists r'.
+	split => [ | t'' gst'']; first by exists t'.
+	by apply prop; apply (gtg' s sfd).2.
+move => r'' [[t'' [gst'' ft''r'']] prop'].
+split => //; by exists t''; split => //; apply (gtg' s sfd).2.
+Qed.
+
+Lemma tight_exte_dom (f g: S ->> T):
+	g \extends f -> f \tightens (g \restricted_to (dom f)).
+Proof.
+move => exte.
+apply split_tight => [s | s]; first by rewrite dom_restr_spec => [[]].
+by rewrite dom_restr_spec => [[sfdf sfdg]] t fst; split; last apply exte.
+Qed.
+End tight.
+
+Section tight_comp.
+Lemma tight_id_inv S T (f: S ->> T): mf_id \tightens (f\^-1 \o f).
+Proof.
+apply split_tight => [ | s [s' [[t [fst fs't]]] subs]]; first by rewrite F2MF_dom; apply subs_all.
+by move => _ <-; split; first by exists t.
+Qed.
+
+Arguments tight_id_inv {S} {T} (f).
+
+Lemma tight_comp_l_codom R S T (f f': T ->> R) (g: S ->> T):
+	f \tightens (f' \restricted_to (codom g)) -> (f \o g) \tightens (f' \o g).
+Proof.
+move => ftf' s [r [[t [gst f'tr]] prop]].
+have tfd: t \from dom (f' \restricted_to (codom g)) by exists r; split => //; exists s.
+have [r' ftr']:= (ftf' t tfd).1.
+have f'tr': f' t r' by apply (ftf' t tfd).2.
+split; first exists r'.
+	split => [ | t'' gst'']; first by exists t.
+	apply ftf'; have [r'' f't''r'']:= prop t'' gst''.
+	by exists r''; split => //; exists s.
+move => r'' [[t'' [gst'' ft''r'']] prop'].
+split => //; exists t''; split => //.
+apply ftf'; have [r''' f't''r'']:= prop t'' gst'' => //.
+by exists r'''; split => //; exists s.
+Qed.
+
+Lemma tight_comp_l R S T (f f': T ->> R) (g: S ->> T):
+	f \tightens f' -> (f \o g) \tightens (f' \o g).
+Proof.
+move => tight; apply tight_comp_l_codom.
+by apply /tight_trans; first apply /tight_restr_w.
+Qed.
+
+Lemma cotot_tight_comp_l R S T (f f': T ->> R) (g: S ->> T):
+  g \is_singlevalued -> dom f' \is_subset_of codom g -> (f \o g) \tightens (f' \o g) ->
+  f \tightens f'.
+Proof.
+move => sing subs tight.
+apply split_tight => [t [r ftr] | t [r' f'tr'] r ftr].
+	have [ | s gst]:= subs t; first by exists r.
+	have sfd: s \from dom (f' \o g) by rewrite sing_rcmp => //; exists r; exists t.
+	have [r' [[t' [gst' ft'r']] _]]:= tight_dom tight sfd.
+	by rewrite (sing s t t') =>//; exists r'.
+have [ | s gst]:= subs t; first by exists r'.
+have sfd: s \from dom (f' \o g) by rewrite sing_rcmp => //; exists r'; exists t.
+have subs':= tight_val tight sfd.
+have fgsr: (f \o g) s r by rewrite sing_rcmp => //; exists t.
+have [[t' [gst' f't'r]]]:= subs' r fgsr.
+by rewrite (sing s t t').
+Qed.
+
+Lemma tight_comp R S T (f f': T ->> R) (g g': S ->> T):
+	f \tightens f' -> g \tightens g' -> (f \o g) \tightens (f' \o g').
+Proof.
+intros; apply/tight_trans/tight_comp_l; last by apply H.
+apply/tight_trans/tight_comp_r; last by apply H0.
+exact/tight_ref.
+Qed.
+
+Lemma tight_comp_codom R S T (f f': T ->> R) (g g': S ->> T):
+	f \tightens (f' \restricted_to (codom g')) -> g \tightens g' -> (f \o g) \tightens (f' \o g').
+Proof.
+move => tight tight'.
+apply/tight_trans; first by apply /tight_comp_l_codom/tight.
+by apply/tight_trans/tight_comp_r; [apply/tight_ref | apply tight'].
+Qed.
+
+Lemma tight_inv_comp R S T (f: S ->> R) (g: T ->> R) (h: S ->> T):
+	(f \o (h\^-1)) \tightens g -> f \tightens (g \o h).
+Proof.
+move => tight; rewrite -(comp_id_r f).
+apply /tight_trans; last apply /tight_comp_r/(tight_id_inv h).
+by rewrite -comp_assoc; apply tight_comp_l.
+Qed.
+
+Lemma tight_comp_inv R S T (f: S ->> R) (g: T ->> R) (h: S ->> T):
+	h \is_surjective_partial_function -> f \tightens (g \o h) <-> (f \o (h\^-1)) \tightens g.
+Proof.
+move => [sing /cotot_spec eq]; split => tight; last exact/tight_inv_comp.
+rewrite (restr_all g) -eq -comp_id_restr -sing_comp_inv // -comp_assoc.
+exact/tight_comp_l.
+Qed.
+End tight_comp.
+
+Section choice_functions.
+Context (S T: Type).
+Definition icf S T (g: S -> T) (f: S ->> T) := forall s t, f s t -> f s (g s).
+Notation "g '\is_choice_for' f" := (icf g f) (at level 2).
+
+Lemma icf_F2MF_tight (g: S -> T) f:
+	g \is_choice_for f <-> (F2MF g) \tightens f.
+Proof.
+split => [ icf s [] t fst | tight s t fst].
+	by split => [ | gs eq ]; [exists (g s) | rewrite -eq; apply: (icf s t)].
+have ex: s \from dom f by exists t.
+by apply ((tight s ex).2 (g s)).
+Qed.
+
+Global Instance icf_prpr: Proper (@eqfun T S ==> @equiv S T ==> iff) (@icf S T).
+Proof.
+move => f f' fe g g' ge; rewrite !icf_F2MF_tight ge.
+by have ->: F2MF f =~= F2MF f' by move => s t /=; rewrite (fe s).
+Qed.
+
+Lemma id_icf_inv (f: S ->> T): id \is_choice_for ((f\^-1) \o f).
+Proof. by move => s s' [[t [fst _]] _]; split; [exists t | exists s]. Qed.
+
+Lemma sing_tot_F2MF_icf (f: S ->> T) g:
+	f \is_singlevalued -> f \is_total -> (g \is_choice_for f <-> F2MF g =~= f).
+Proof.
+move => sing tot.
+split => [icf s t| eq s t fst]; last by by rewrite ((eq s t).2 fst).
+split => [ eq | fst ]; last by rewrite (sing s t (g s)); last by apply (icf s t fst).
+by have [t' fst']:= (tot s); by rewrite -eq; apply (icf s t').
+Qed.
+
+Lemma icf_comp R f' (f: T ->> R) g' (g: S ->> T):
+	f' \is_choice_for f -> g' \is_choice_for g
+		-> (fun s => f' (g' s)) \is_choice_for (f \o g).
+Proof.
+move => icff icfg s r [[t [gst ftr]] prop].
+split => [ | t' gst']; last exact (prop t' gst'); exists (g' s).
+have gsg's: g s (g' s) by apply/ (icfg s t).
+have [r' fg'sr']:= (prop (g' s) gsg's).
+by split; last apply/ (icff (g' s) r').
+Qed.
+
+Lemma tight_icf (g f: S ->> T):
+	g \tightens f -> forall h, (h \is_choice_for g -> h \is_choice_for f).
+Proof. by move => tight h icf; apply/icf_F2MF_tight/tight_trans/icf_F2MF_tight/icf. Qed.
+End choice_functions.
+Notation "f '\is_tightened_by' g" := (tight f g) (at level 2).
+Notation "g '\tightens' f" := (tight f g) (at level 2).
+Notation "g '\is_choice_for' f" := (icf g f) (at level 2).
+
+Section products.
+Context (S T S' T': Type).
+Definition fprd_mf S T S' T' (f : S ->> T) (g : S' ->> T') :=
+	make_mf (fun s => (f s.1) \x (g s.2)).
+Notation "f '**' g" := (fprd_mf f g) (at level 50).
+
+Global Instance fprd_prpr S T S' T':
+Proper ((@equiv S T) ==> (@equiv S' T') ==> (@equiv (S * S') (T * T'))) (@fprd_mf S T S' T').
+Proof.
+move => f f' eq g g' eq' r t.
+by rewrite /fprd_mf /= eq eq'.
+Qed.
+
+Definition fprd S T S' T' (f: S -> T) (g: S' -> T') := fun p => (f p.1, g p.2).
+Notation "f **_f g" := (fprd f g) (at level 50).
+
+Lemma F2MF_fprd (f: S -> T) (g: S' -> T'): F2MF (f **_f g) =~= (F2MF f) ** (F2MF g).
+Proof. by move => s [t1 t2]; rewrite /fprd/=; split; move => [-> ->]. Qed.
+
+Definition fprd_p1 (fg: (S * S') ->> (T * T')) :=
+	make_mf (fun s t => exists s' p, fg (s,s') p /\ p.1 = t).
+
+Definition fprd_p2 (fg: (S * S') ->> (T * T')) :=
+	make_mf (fun s' t' => exists s p, fg (s, s') p /\ p.2 = t').
+
+Lemma fprd_proj1 (f: S ->> T) (g: S' ->> T'):
+	(exists s', s' \from dom g) -> fprd_p1 (f ** g) =~= f.
+Proof.
+move => [s' [t' gs't']].
+by split => [[k [p [[/= eq _] eq']]] | ]; [rewrite -eq' | exists s'; exists (s0, t')].
+Qed.
+
+Lemma fprd_proj2 (f: S ->> T) (g: S' ->> T'):
+	(exists s, s \from dom f) -> fprd_p2 (f ** g) =~= g.
+Proof.
+move => [s [somet fst]].
+move => s' t.
+by split => [[k [p [[/= _ eq] eq']]] | ]; [rewrite -eq' | exists s; exists (somet, t)].
+Qed.
+
+Lemma fprd_dom R Q R' Q' (f: R ->> Q) (g: R' ->> Q'):
+  dom (f ** g) === (dom f) \x (dom g).
+Proof.
+split; last by move => [[s' fs's] [t' ft't]]; exists (s',t').
+by move => [] x [] /= fsx gty; split; [exists x.1| exists x.2].
+Qed.
+
+Lemma fprd_inv (f: S ->> T) (g: S' ->> T'): (f ** g)\^-1 =~= f\^-1 ** g\^-1.
+Proof. done. Qed.
+
+Lemma fprd_codom (f: S ->> T) (g: S' ->> T'): codom (f ** g) === (codom f) \x (codom g).
+Proof. by rewrite !codom_dom_inv fprd_inv -fprd_dom. Qed.
+
+Lemma fprd_sing (f: S ->> T) (g: S' ->> T'):
+  f \is_singlevalued -> g \is_singlevalued -> (f ** g) \is_singlevalued.
+Proof.
+move => fsing gsing [s1 s2] [t1 t2] [t'1 t'2] [fst gst] [fst' gst'].
+by rewrite (fsing s1 t1 t'1) // (gsing s2 t2 t'2).
+Qed.
+
+Lemma fprd_tot (f: S ->> T) (g: S' ->> T'):
+	f \is_total -> g \is_total -> (f ** g) \is_total.
+Proof. by rewrite !tot_spec fprd_dom => -> ->. Qed.
+
+Lemma tot_fprd (f: S ->> T) (g: S' ->> T') (s: S) (s': S'):
+	(f ** g) \is_total -> f \is_total /\ g \is_total.
+Proof.
+move => tot; have [[t t' [fst gs't']] ]:= tot (s, s').
+move/tot_spec: tot; rewrite fprd_dom => eq.
+rewrite !tot_spec; apply/ (sprd_All_inv _ _ eq); [exists t; apply fst | exists t'; apply gs't'].
+Qed.
+
+Lemma fprd_cotot (f: S ->> T) (g: S' ->> T'):
+	f \is_cototal -> g \is_cototal -> (f ** g) \is_cototal.
+Proof. by rewrite !cotot_spec fprd_codom => -> ->. Qed.
+
+Lemma fprd_rcmp R R' (f: S ->> T) (g: S' ->> T') (f': R ->> S) (g': R' ->> S'):
+	(f ** g) \o_R (f' ** g') =~= (f \o_R f') ** (g \o_R g').
+Proof.
+by split => [[[r s'] [[f'st g's't] []]] | [[r [f'rs fst]] [s' []]]]; [split; [exists r | exists s'] | exists (r, s')].
+Qed.
+
+Lemma fprd_comp R R' (f: S ->> T) (g: S' ->> T') (f': R ->> S) (g': R' ->> S'):
+	(f ** g) \o (f' ** g') =~= (f \o f') ** (g \o g').
+Proof.
+move => r t.
+split => [[/fprd_rcmp [rcmpf rcmpg]] | [[rcmp subs] [rcmp' subs']]].
+	rewrite fprd_dom => subs; split; split => // s frs.
+		by have [s' [grs g'st]]:= rcmpg; have []//:= subs (s, s').
+	by have [s' [grs g'st]]:= rcmpf; have []//:= subs (s', s).
+split; first exact/fprd_rcmp.
+by rewrite fprd_dom => s []; split; [apply subs | apply subs'].
+Qed.
+
+Lemma fprd_tight (f: S ->> T) (g: S' ->> T') (f': S ->> T) (g': S' ->> T'):
+	f \tightens f' -> g \tightens g' -> (f ** g) \tightens (f' ** g').
+Proof.
+move => tight tight'; apply split_tight => [ | s dm t [fst gst]].
+	by rewrite !fprd_dom => s [dm dm']; split; apply/tight_dom; try apply/dm; try apply/dm'.
+by move/fprd_dom: dm => [dm dm']; split; apply/tight_val; try apply /fst; try apply /gst.
+Qed.
+
+End products.
+Notation "f '**' g" := (fprd_mf f g) (at level 50).
+Notation "f '**_f' g" := (fprd f g) (at level 50).
+
+Section sums.
+Context (S T S' T': Type).
+(* A modification of the following construction is used to define the sum of represented spaces. *)
+Definition mf_fsum S T S' T' (f : S ->> T) (g : S' ->> T') :=
+  make_mf (fun c x => match c with
+    | inl a => match x with
+      | inl y => f a y
+      | inr z => False
+    end
+    | inr b => match x with
+      | inl y => False
+      | inr z => g b z
+    end
+  end).
+Notation "f +s+ g" := (mf_fsum f g) (at level 50).
+
+Definition	 fsum S T S' T' (f: S -> T) (g: S' -> T') :=
+	fun ss' => match ss' with
+		| inl s => inl (f s)
+		| inr s' => inr (g s')
+	end.
+Notation "f +s+_f g" := (fsum f g) (at level 50).
+
+Lemma	F2MF_fsum (f: S -> T) (g: S' -> T'):
+	F2MF (f +s+_f g) =~= (F2MF f) +s+ (F2MF g).
+Proof.
+split; rewrite /F2MF; first by move <-; case s => /=.
+by case: s => /=; case: s0 => //= s t ->.
+Qed.
+
+Lemma fsum_sing (f: S ->> T) (g: S' ->> T'):
+	f \is_singlevalued -> g \is_singlevalued -> (f +s+ g) \is_singlevalued.
+Proof.
+move => fsing gsing [s [t [r /=fst fsr | r'] | t' [r | r']]| s' [t [r | r'] | t' [r | r' /= gs't' gs'r']]] //.
+	by rewrite (fsing s t r).
+by rewrite (gsing s' t' r').
+Qed.
+
+End sums.
+Notation "f '+s+' g" := (mf_fsum f g) (at level 50).
+Notation "f '+s+_f' g" := (fsum f g) (at level 50).
+
+Section functions.
+Context (S T S' T': Type).
+
+Definition cnst S T (c: T) := (fun (_: S) => c).
+
+Definition mf_cnst S T (c: T) := F2MF (@cnst S T c).
+Arguments mf_cnst {S} {T}.
+
+Lemma cnst_rcmp R (c: T) (f: R ->> S): (mf_cnst c) \o_R f =~= (mf_cnst c)|_(dom f).
+Proof. by move => r t; split => [[s [fst <-]] | [[s] frs <-]]; first split; try by exists s. Qed.
+
+Lemma cnst_comp R (c: T) (f: R ->> S): (mf_cnst c) \o f =~= (mf_cnst c)|_(dom f).
+Proof.
+move => r t.
+split; first by rewrite /=/cnst; move => [[s [frs /=->]] _]; split => //; exists s.
+move => [[s fsr <-]]; split; first by exists s.
+by move => a b; exists c.
+Qed.
+
+Lemma fprd_id: @mf_id S ** @mf_id S' =~= @mf_id (S * S').
+Proof. by move => [s s'] [t t'] /=;split; by move => [-> ->]. Qed.
+
+Definition mf_fst S T := (F2MF (@fst S T)).
+Arguments mf_fst {S} {T}.
+
+Lemma fprd_fst (f: S ->> T) (g: S' ->> T') : mf_fst \o (f ** g) =~= (f \o mf_fst)|_(All \x dom g).
+Proof.
+move => s t; rewrite comp_F2MF.
+split => [[[[t' t''] [[/= fs1t' gs2t'']]] /=<- _] | [[_ [t' gs2t']] fst]].
+	split => //; split => //; by exists t''.
+rewrite comp_rcmp; last exact /F2MF_tot.
+by exists (t, t').
+Qed.
+
+Definition mf_snd S T := (F2MF (@snd S T)).
+Arguments mf_snd {S} {T}.
+
+Lemma fprd_snd (f: S ->> T) (g: S' ->> T') : mf_snd \o (f ** g) =~= (g \o mf_snd)|_(dom f \x All).
+Proof.
+move => s t; rewrite comp_F2MF.
+split => [[[[t' t''] [[/= fs1t' gs2t'']]] /=<- _] | [[[t' gs2t'] _] fst]].
+	split => //; split => //; by exists t'.
+rewrite comp_rcmp; last exact /F2MF_tot.
+by exists (t', t).
+Qed.
+
+Definition diag S := fun (d: S) => (d,d).
+Arguments diag {S}.
+Definition mf_diag S := F2MF (@diag S).
+Arguments mf_diag {S}.
+
+Lemma tight_fprd_diag (f: S ->> T): (mf_diag \o f) \tightens ((f ** f) \o mf_diag).
+Proof.
+apply split_tight => [ | s sfd [_ _] [[t] [fst [<- <-]] _]]; last by rewrite comp_F2MF.
+rewrite comp_F2MF => s [[t t'] [fst fst']].
+rewrite comp_rcmp; last exact /F2MF_tot.
+exists (t, t); exists t; split => //.
+Qed.
+
+Lemma fprd_diag (f: S ->> T): f \is_singlevalued -> (f ** f) \o mf_diag =~= mf_diag \o f.
+Proof.
+rewrite comp_F2MF comp_rcmp; last exact /F2MF_tot.
+move => sing s [t1 t2].
+split => [[fst1 fst2] | ]; last by move => [t] [fst [<- <-]].
+by exists t1; split => //; rewrite (sing s t2 t1).
+Qed.
+
+Lemma fprd_diag_sing (f: S ->> T): ((f ** f) \o mf_diag) \tightens (mf_diag \o f) -> f \is_singlevalued.
+Proof.
+move => tight.
+have: ((f ** f) \o mf_diag) =~= (mf_diag \o f) by apply/tight_equiv/tight_fprd_diag.
+rewrite comp_F2MF comp_rcmp; last exact /F2MF_tot.
+by move => eq s t t'; intros; have /=[ | t'' [fst'' [<- <-]]]//:= (eq s (t, t')).1.
+Qed.
+
+Definition uncurry R S T (E: R * S -> T) r:= (fun s => E (r,s)).
+Definition mf_uncurry R S T (E: R * S ->> T) r := make_mf (fun s t => E (r, s) t).
+
+Lemma F2MF_ncry R (E: R * S -> T) r:
+	F2MF (uncurry E r) =~= mf_uncurry (F2MF E) r.
+Proof. done. Qed.
+
+Lemma mf_ncry_prp R (E: R * S ->> T) r:
+	mf_uncurry E r =~= E \o ((mf_cnst r) ** mf_id) \o mf_diag.
+Proof. by rewrite -F2MF_fprd comp_assoc !comp_F2MF => s t/=. Qed.
+End functions.
+Arguments cnst {S} {T}.
+Arguments mf_cnst {S} {T}.
+Arguments diag {S}.
+Arguments mf_diag {S}.
+Arguments mf_fst {S} {T}.
+Arguments mf_snd {S} {T}.

@@ -1,5 +1,10 @@
-From mathcomp Require Import all_ssreflect.
-Require Import mf_set mf_core mf_comp mf_tot mf_sing.
+(******************************************************************************)
+(* Some lemmas about multivalued functions that are only true if classical    *)
+(* reasoning is used. This file is not exported by all_mpf and has to be      *)
+(* imported separately.                                                       *)
+(******************************************************************************)
+From mathcomp Require Import ssreflect ssrfun.
+Require Import all_mpf.
 Require Import Classical.
 
 Section classical_mf.
@@ -22,7 +27,7 @@ Proof.
 move => sing tot R g h eq r s.
 have [t fst]:= tot s.
 have eq':= eq r t.
-case: (classic (f o g r t)) => [cmp | ncmp].
+case: (classic ((f \o g) r t)) => [cmp | ncmp].
 	have: g r s.
 		have [[s' [grs' fs't]] _]:= cmp.
 		by rewrite (sing t s s').
@@ -53,10 +58,10 @@ f \is_singlevalued -> (f \is_cototal <-> f \is_epi).
 Proof.
 split => [fcotot Q g h eq t q| ]; last exact: sur_cotot.
 split => ass; move: (fcotot t) => [] s fst.
-	suffices gfsq: (g o f) s q.
+	suffices gfsq: (g \o f) s q.
 		by move: ((eq s q).1 gfsq) => [] [] t' [] fst'; rewrite (H s t t').
 	by split => [ | t' fst']; [exists t | exists q; rewrite (H s t' t)].
-have hfsq: (h o f) s q.
+have hfsq: (h \o f) s q.
 	by split => [ | t' fst']; [ exists t| exists q; rewrite (H s t' t) ].
 by move: ((eq s q).2 hfsq) => [] [] t' [] fst'; rewrite (H s t t').
 Qed.
