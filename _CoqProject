@@ -1,6 +1,6 @@
--R . mpf
+-R . mf
 mf_set.v
 mf.v
-all_mpf.v
+all_mf.v
 classical_mf.v
 choice_mf.v

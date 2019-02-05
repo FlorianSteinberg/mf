@@ -4,7 +4,7 @@
 (* imported separately.                                                       *)
 (******************************************************************************)
 From mathcomp Require Import ssreflect ssrfun.
-Require Import all_mpf.
+Require Import all_mf.
 Require Import Classical.
 
 Local Open Scope mf_scope.
