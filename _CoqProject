@@ -1,4 +1,7 @@
 -R . mf
+-arg -w -arg -notation-overridden
+-arg -w -arg -masking-absolute-name
+
 mf_set.v
 mf.v
 all_mf.v
