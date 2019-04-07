@@ -909,7 +909,7 @@ Section tightenings.
   (* tight is almost an equivalence relation, it only fails to be symmetric *)
   Global Instance tight_ref: Reflexive (@tight S T).
   Proof. done. Qed.
-  
+    
   Global Instance tight_trans: Transitive (@tight S T).
   Proof.
     move => f g h tight tight'.
@@ -979,6 +979,11 @@ Section tightenings.
     by apply /tight_val /fst/dom_restr_subs/dm.
   Qed.
 
+  Lemma rcmp_tight R (f: R ->> T) (g: S ->> R): (f \o_R g) \tightens (f \o g).
+  Proof.
+    by rewrite tight_spec; split => [ s [t] []| s t [[t' []] cmp]]; first exists t.
+  Qed.
+  
   Lemma tight_restr_l (f g: S ->> T) P Q:
     P \is_subset_of Q -> (f|_P) \tightens g -> (f|_Q) \tightens g.
   Proof.
