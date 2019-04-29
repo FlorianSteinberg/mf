@@ -1110,7 +1110,7 @@ End tight_comp.
 
 Section choice_functions.
   Context (S T: Type).
-  Definition icf S T (g: S -> T) (f: S ->> T) := forall s t, f s t -> f s (g s).
+  Definition icf S T (g: S -> T) (f: S ->> T) := forall s, s \from dom f -> f s (g s).
   Local Notation "g '\is_choice_for' f" := (icf g f) (at level 2).
 
   Definition ipcf S T (g: S -> option T) (f: S ->> T):=
@@ -1121,10 +1121,8 @@ Section choice_functions.
   Lemma icf_spec (g: S -> T) f: g \is_choice_for f <->
 	                        (F2MF g) \tightens f.
   Proof.
-    split => [ icf s [] t fst | tight s t fst].
-    - by split => [ | gs eq ]; [exists (g s) | rewrite -eq; apply: (icf s t)].
-    have ex: s \from dom f by exists t.
-    by apply ((tight s ex).2 (g s)).
+    split => [icf s sfd | tight s sfd]; last exact/(tight _ _).2.
+    by rewrite F2MF_dom; split => // fs <-; apply/icf.
   Qed.
 
   Lemma ipcf_spec (g: S -> option T) f: g \is_partial_choice_for f <->
@@ -1143,15 +1141,15 @@ Section choice_functions.
   Qed.
 
   Lemma id_icf_inv (f: S ->> T): id \is_choice_for ((f\^-1) \o f).
-  Proof. by move => s s' [[t [fst _]] _]; split; [exists t | exists s]. Qed.
+  Proof. by move => s [s' [[t [fst _]] _]]; split; [exists t | exists s]. Qed.
 
   Lemma sing_tot_F2MF_icf (f: S ->> T) g:
     f \is_singlevalued -> f \is_total -> (g \is_choice_for f <-> F2MF g =~= f).
   Proof.
     move => sing tot.
-    split => [icf s t| eq s t fst]; last by by rewrite ((eq s t).2 fst).
-    split => [ eq | fst ]; last by rewrite (sing s t (g s)); last by apply (icf s t fst).
-    by have [t' fst']:= (tot s); by rewrite -eq; apply (icf s t').
+    split => [icf s fs| eq s sfd]; last exact/eq.
+    split => [<- | val]; first exact/icf/tot.
+    exact/sing/val/icf/tot.
   Qed.
 
   Lemma tight_icf (g f: S ->> T):

@@ -22,7 +22,7 @@ Section choice_mf.
     exists f, f \is_choice_for F.
   Proof.
     pose R s t := forall Fs, F s Fs -> F s t.
-    have [s | f tot]:= @choice _ _ R; last by exists f => s; apply /tot.
+    have [s | f tot]:= @choice _ _ R; last by exists f => s [fs fsfs]; apply/tot/fsfs.
     case: (classic (s \from dom F)) => [[] t' fst | false]; first by exists t'.
     by exists t => t' fst'; exfalso; apply false; exists t'.
   Qed.
@@ -39,36 +39,36 @@ Section choice_mf.
   Lemma icf_tight (g f: S ->> T): (forall s, exists t', ~ f s t')
     -> (forall h, (h \is_choice_for g -> h \is_choice_for f)) -> (g \tightens f).
   Proof.
-    move => ex prop s [t fst].
+    move => ex prop s sfd.
     split => [ | t' gst'].
     - have [t' nfst']:= (ex s).
       pose g' := make_mf (fun x y => (x <> s -> g x y) /\ (x = s -> y = t')).
-      have [h icf'] := (exists_choice g' t).
+      have [h icf'] := (exists_choice g' t').
       apply NNPP => nex.
       have ngst': ~g s t' by move => gst'; apply nex; exists t'.
       have icf: h \is_choice_for g.
-      + move => s' t'' gs't''.
-	case (classic (s' = s)) => [eq | neq].
+      + move => s' [t'' gs't''].
+	case (classic (s' = s)) => [eq | neq].        
 	* by exfalso; apply nex; exists t''; rewrite -eq.
 	have g's't'': g' s' t'' by split => // eq; exfalso; apply neq.
-	exact: ((icf' s' t'' g's't'').1 neq).
-      suffices eq: h s = t' by apply nfst'; rewrite -eq; apply: (prop h icf s t).
+        by apply/((icf' s' _).1 neq); exists t''.
+      suffices eq: h s = t' by apply nfst'; rewrite -eq; apply: (prop h icf s).
       have g'st': g' s t' by trivial.
-      by apply (icf' s t' g'st').2.
+      by apply/(icf' s _).2; first exists t'.
     pose g' := make_mf (fun x y => g x y /\ (x = s -> y = t')).
     have gtg: g' \tightens g.
     - move => x xfd.
       split => [ | y g'xy]; last by apply g'xy.1.
       case (classic (x = s)) => [ eq | neq ]; first by exists t'; rewrite eq.
       by have [y gxy]:= xfd; exists y; by split.
-    have [h icf']:= (exists_choice g' t).
+    have [h icf']:= (exists_choice g' t').
     have icf: h \is_choice_for g.
     - apply icf_spec.
       apply/ tight_trans; first by apply/ gtg.
       by apply icf_spec; apply icf'.
-    suffices val: h s = t' by rewrite -val; apply/ (prop h icf s t).
+    suffices val: h s = t' by rewrite -val; apply/ (prop h icf s _).
     have val': g s t' /\ (s = s -> t' = t') by split.
-    by apply: (icf' s t' val').2.
+    by apply: (icf' s _).2; first exists t'.
   Qed.
 End choice_mf.
 
@@ -81,9 +81,9 @@ Proof.
   have: F \is_total => [s' | tot].
   - case: (classic (s' \from dom f)) => [[fs' fs'fs'] | neg]; last by exists None; right.
     by exists (Some (fs')); left; exists fs'.
-  exists g => s t /=; have [fs fsfs]:= tot s.
+  exists g => s t /=.
   case E: (g s) => [gs |].
-  - have [[t' []] | []]:= icf s (fs) fsfs; last by rewrite E.
+  - have [[t' []] | []]:= icf s (tot s); last by rewrite E.
     by rewrite E => [[<- fsgs]]; split => [<- | fst]//; apply/sing/fst.
-  by split => // fst; have [[t' []] | [ndm _]]:= icf s fs fsfs; [rewrite E |apply ndm; exists t].
+  by split => // fst; have [[t' []] | [ndm _]]:= icf s (tot s); [rewrite E |apply ndm; exists t].
 Qed.
