@@ -4,6 +4,6 @@
 
 mf_set.v
 mf.v
+partial_functions.v
 all_mf.v
 classical_mf.v
-choice_mf.v

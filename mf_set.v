@@ -28,26 +28,21 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Module mf_subset.
-  Structure type S :=
-    Pack {
-        P :> S -> Prop;
-      }.
-End mf_subset.
-
-Coercion mf_subset.P: mf_subset.type >-> Funclass.
-Canonical make_subset S (P: S -> Prop):= (mf_subset.Pack P).
+Structure subset S := {P :> S -> Prop}.
 
 Delimit Scope mf_scope with mf.
 Local Open Scope mf_scope.
-Notation subset S := (mf_subset.type S).
+Notation make_subset:= Build_subset (only parsing).
+Definition from S (A: subset S) a:= A a.
+Notation "a \from A" := (from A a) (at level 50).
+
 Definition mf_sig S (P: subset S) := {s | P s}.
-Coercion mf_sig: mf_subset.type >-> Sortclass.
+Coercion mf_sig: subset >-> Sortclass.
 
 Section mf_subsets.
   Context (S: Type).
   
-  Definition set_equiv (P Q: subset S) := forall s, P s <-> Q s.
+  Definition set_equiv (P Q: subset S) := forall s, s \from P <-> s \from Q.
   Local Notation "P === Q" := (set_equiv P Q) (at level 50).
   
   Global Instance sqv_equiv: Equivalence set_equiv.
@@ -56,25 +51,21 @@ Section mf_subsets.
     by split => [Ps | Rs]; [apply /eq' /eq | apply /eq /eq'].
   Qed.
 
-  Local Notation "s '\from' P" := (P s) (at level 50).
-
   Global Instance from_prpr:
-    Proper (set_equiv ==> (@eq S) ==> iff) (@mf_subset.P S).
+    Proper (set_equiv ==> (@eq S) ==> iff) (@from S).
   Proof. by move => P Q eq s _ <-; apply eq. Qed.
 
-  Definition subs (P Q : subset S) := forall s, P s -> Q s.
-  Local Notation "P '\is_subset_of' Q" := (subs P Q) (at level 50).
+  Definition inclusion (P Q : subset S) := forall s, s \from P -> s \from Q.
+  Local Notation "P '\is_subset_of' Q" := (inclusion P Q) (at level 50).
 
   Global Instance subs_prpr:
-    Proper (set_equiv ==> set_equiv ==> iff) subs.
-  Proof.
-      by move => P Q PeQ P' Q' P'eQ'; split => subs s; intros; apply /P'eQ' /subs /PeQ.
-  Qed.
+    Proper (set_equiv ==> set_equiv ==> iff) inclusion.
+  Proof. by move => P Q PeQ P' Q' P'eQ'; split => subs s; intros; apply /P'eQ' /subs /PeQ. Qed.
 
-  Global Instance subs_ref: Reflexive subs.
+  Global Instance subs_ref: Reflexive inclusion.
   Proof. by move => P P'. Qed.
 
-  Global Instance subs_trans: Transitive subs.
+  Global Instance subs_trans: Transitive inclusion.
   Proof. by move => P P' P'' PsP' P'sP'' s Ps; apply/P'sP''/PsP'. Qed.
 
   Lemma set_eq_subs P Q:
@@ -112,9 +103,8 @@ Section mf_subsets.
   Definition union T P P':= make_subset (fun (q: T) => P q \/ P' q).
   Local Notation "P \n Q" := (intersection P Q) (at level 2).
 End mf_subsets.
-Notation "s \from P" := ((P: mf_subset.type _) s) (at level 70) : mf_scope.
 Notation "P === Q" := (set_equiv P Q) (at level 50): mf_scope.
-Notation "P '\is_subset_of' Q" := (subs P Q) (at level 50): mf_scope.
+Notation "P '\is_subset_of' Q" := (inclusion P Q) (at level 50): mf_scope.
 Notation "P '\intersects' Q" := (intersects P Q) (at level 50): mf_scope.
 Notation "P \n Q" := (intersection P Q) (at level 2): mf_scope.
 Notation "P \u Q" := (union P Q) (at level 2): mf_scope.
@@ -122,7 +112,7 @@ Arguments All {S}.
 Arguments empty {S}.
 
 Section products.
-  Definition set_prod S T (P: mf_subset.type S) (Q: mf_subset.type T) :=
+  Definition set_prod S T (P: subset S) (Q: subset T) :=
 	make_subset (fun st => P st.1 /\ Q st.2).
   Local Notation "P \x Q" := (set_prod P Q) (at level 40).
 
@@ -133,11 +123,11 @@ Section products.
     by rewrite eq eq'.
   Qed.
 
-  Lemma sprd_All S T (P: mf_subset.type S) (Q: mf_subset.type T):
+  Lemma sprd_All S T (P: subset S) (Q: subset T):
     P === All /\ Q === All -> P \x Q === All.
   Proof. by move => [eq eq'] s /=; rewrite eq eq'. Qed.
 
-  Lemma sprd_All_inv S T (P: mf_subset.type S) (Q: mf_subset.type T) somes somet:
+  Lemma sprd_All_inv S T (P: subset S) (Q: subset T) somes somet:
     P somes -> Q somet -> P \x Q === All -> P === All /\ Q === All.
   Proof.
     move => Ps Qt eq.
