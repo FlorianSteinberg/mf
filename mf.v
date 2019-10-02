@@ -90,8 +90,8 @@ Global Instance value_prpr S T:
 Proof. by move => P Q eq s _ <-; apply eq. Qed.
 
 Section Basics.
-  Definition F2MF S T (f : S -> T) : (S ->> T) := make_mf (fun s => singleton (f s)).
-
+  Definition F2MF S T (f : S -> T) := Build_mf (fun s => singleton (f s)).
+  
   Lemma F2MF_spec S T (f: S -> T) s t: t \from F2MF f s <-> f s = t.
   Proof. done. Qed.
 
@@ -99,7 +99,9 @@ Section Basics.
   Proof. by move => f g eq s t; rewrite /F2MF /= eq. Qed.
 
   Lemma F2MF_eq S T (f g: S -> T): f =1 g <-> (F2MF f) =~= (F2MF g).
-  Proof. by split => [eq s t/= | eq s]; [split => <-; rewrite (eq s) | have ->:= (eq s (f s)).1]. Qed.
+  Proof.
+    by split => [eq s t/= | eq s]; [split => <-; rewrite eq | rewrite (eq s (f s)).1].
+  Qed.
 
   Definition inverse S T (f: S ->> T) := make_mf (fun t s => f s t).
   Local Notation inv f := (inverse f).
@@ -538,6 +540,9 @@ Section totals.
   Local Notation "f '\is_cototal'" := (cototal f) (at level 30).
 
   Lemma F2MF_cotot (f: S -> T): f \is_surjective <-> (F2MF f) \is_cototal.
+  Proof. done. Qed.
+
+  Lemma F2MF_sur (f: S -> T): (F2MF f) \is_cototal <-> f \is_surjective.
   Proof. done. Qed.
 
   Lemma cotot_spec (f: S ->> T): f \is_cototal <-> codom f === All.
@@ -1307,7 +1312,10 @@ Section functions.
 
   Lemma fprd_id: @mf_id S ** @mf_id S' =~= @mf_id (S * S').
   Proof. by move => [s s'] [t t'] /=;split; by move => [-> ->]. Qed.
-  
+
+  Lemma fsum_id: @mf_id S +s+ @mf_id S' =~= @mf_id (S + S').
+  Proof. by case => s [t | t] //=; split => [-> | []]. Qed.
+
   Definition mf_fst S T := (F2MF (@fst S T)).
   Arguments mf_fst {S} {T}.
   
