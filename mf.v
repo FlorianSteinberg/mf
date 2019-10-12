@@ -1289,6 +1289,15 @@ Section lists.
     elim => [ | t K [L eq]]; first by exists nil.
     by have [s val]:= sur t; exists (s :: L).
   Qed.
+
+  Lemma map_sing S T (f: S ->> T): f \is_singlevalued -> (mf_map f) \is_singlevalued.
+  Proof.
+    move => sing L K K'.
+    elim : L K K' => [ | q L ih]; first by case => //; case.    
+    case => // a K; case => // a' K' /=[fqa lst] [fqa' lst'].
+    rewrite (sing q a a' fqa fqa'); f_equal.
+    exact/ih.
+  Qed.
 End lists.
 
 Section functions.
