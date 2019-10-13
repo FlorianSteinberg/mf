@@ -1458,15 +1458,15 @@ Section functions.
 
   Definition rcry_p S T R (f: S * T -> option R) t s := f (s, t).
   
-  Definition uncurry R S T (E: R * S -> T) r:= (fun s => E (r,s)).
-  Definition mf_uncurry R S T (E: R * S ->> T) r := make_mf (fun s t => E (r, s) t).
+  Definition curry R S T (E: R * S -> T) r:= (fun s => E (r,s)).
+  Definition mf_curry R S T (E: R * S ->> T) r := make_mf (fun s t => E (r, s) t).
   
-  Lemma F2MF_ncry R (E: R * S -> T) r:
-    F2MF (uncurry E r) =~= mf_uncurry (F2MF E) r.
+  Lemma F2MF_crry R (E: R * S -> T) r:
+    F2MF (curry E r) =~= mf_curry (F2MF E) r.
   Proof. done. Qed.
   
-  Lemma mf_ncry_prp R (E: R * S ->> T) r:
-    mf_uncurry E r =~= E \o ((mf_cnst r) ** mf_id) \o mf_diag.
+  Lemma mf_crry_prp R (E: R * S ->> T) r:
+    mf_curry E r =~= E \o ((mf_cnst r) ** mf_id) \o mf_diag.
   Proof. by rewrite -F2MF_fprd comp_assoc !comp_F2MF => s t/=. Qed.
 End functions.
 Arguments cnst {S} {T}.
@@ -1477,3 +1477,9 @@ Arguments mf_fst {S} {T}.
 Arguments mf_snd {S} {T}.
 Arguments mf_empty {S} {T}.
 Arguments empty {S}.
+
+Ltac f_to_mf := repeat rewrite ?F2MF_map ?F2MF_fprd ?icf_spec -?F2MF_sur -?sec_cncl ?F2MF_dom ?F2MF_eq -?F2MF_comp_F2MF.
+
+Ltac determinism := repeat f_to_mf|| apply/map_sing || apply/fsum_sing || apply/fprd_sing || apply/rcmp_sing || apply/comp_sing || apply/restr_sing_w || apply/F2MF_sing || apply/empty_sing.
+
+Ltac surjectivity := repeat f_to_mf || apply/map_sur || apply/comp_sur || apply/fsum_cotot || apply/fprd_cotot || apply/comp_cotot; try by determinism || apply/rcmp_cotot.
