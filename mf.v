@@ -590,7 +590,7 @@ Section singlevalueds.
   Lemma dom_frcs (f: S ->> T): f|_(dom (forces f)) \is_singlevalued.
   Proof. by move => s t t' [[t'' frcs] fst] [_ fst']; rewrite (frcs t) // (frcs t'). Qed.
 
-  Global Instance sing_prpr S T: Proper ((@equiv S T) ==> iff) (@singlevalued S T).
+  Global Instance sing_prpr S1 T1: Proper ((@equiv S1 T1) ==> iff) (@singlevalued S1 T1).
   Proof. by split => sing s t t' fst fst'; apply /(sing s t t'); apply /H. Qed.
 
   Lemma empty_sing: (@mf_empty S T) \is_singlevalued.
@@ -1072,8 +1072,8 @@ Section products.
     make_mf (fun s => (f s.1) \x (g s.2)).
   Local Notation "f '**' g" := (fprd_mf f g) (at level 50).
 
-  Global Instance fprd_prpr S T S' T':
-    Proper ((@equiv S T) ==> (@equiv S' T') ==> (@equiv (S * S') (T * T'))) (@fprd_mf S T S' T').
+  Global Instance fprd_prpr S1 T1 S2 T2:
+    Proper ((@equiv S1 T1) ==> (@equiv S2 T2) ==> (@equiv (S1 * S2) (T1 * T2))) (@fprd_mf S1 T1 S2 T2).
   Proof.
     move => f f' eq g g' eq' r t.
       by rewrite /fprd_mf /= eq eq'.
